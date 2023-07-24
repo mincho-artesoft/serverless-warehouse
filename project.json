@@ -1,0 +1,64 @@
+{
+  "name": "serverless-warehouse",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/serverless-warehouse/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/serverless-warehouse",
+        "main": "apps/serverless-warehouse/src/main.ts",
+        "tsConfig": "apps/serverless-warehouse/tsconfig.app.json",
+        "assets": ["apps/serverless-warehouse/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/serverless-warehouse/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "serverless-warehouse:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "serverless-warehouse:build:development"
+        },
+        "production": {
+          "buildTarget": "serverless-warehouse:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/serverless-warehouse/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/serverless-warehouse/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}
