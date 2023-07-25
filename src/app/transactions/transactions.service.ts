@@ -1,26 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { WarehouseTransactio } from './entities/transaction.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class TransactionsService {
-  create(createTransactionDto: CreateTransactionDto) {
-    return 'This action adds a new transaction';
+  async create(createTransactionDto: CreateTransactionDto) {
+    try {
+      createTransactionDto.id = uuidv4();
+      const newWarehouse = new WarehouseTransactio(createTransactionDto);
+      await newWarehouse.save();
+      return { message: 'Successful add WarehouseTransactio.' };
+    } catch (error) {
+      return { message: 'WarehouseTransactio add failed.' };
+    }
   }
 
-  findAll() {
-    return `This action returns all transactions`;
+  async findAll() {
+    const allOrganizations = await WarehouseTransactio.scan().exec();
+    return allOrganizations;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} transaction`;
-  }
-
-  update(id: number, updateTransactionDto: UpdateTransactionDto) {
-    return `This action updates a #${id} transaction`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} transaction`;
+  async findOne(id: string) {
+    try {
+      const organization = await WarehouseTransactio.get(id);
+      return organization;
+    } catch (err) {
+      return undefined;
+    }
   }
 }
