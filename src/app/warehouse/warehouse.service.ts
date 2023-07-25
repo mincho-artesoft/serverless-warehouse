@@ -164,6 +164,9 @@ export class WarehouseService {
               quantity: value,
             });
             console.log(log);
+            if(log.message !='Successful add WarehouseTransactio.'){
+              return { message: 'Warehouse update failed.' };
+            }
             await organization.save();
             return { message: 'Warehouse updated.' };
           }
