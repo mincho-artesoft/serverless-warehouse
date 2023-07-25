@@ -87,25 +87,37 @@ export class WarehouseController {
   findAll() {
     return this.warehouseService.findAll();
   }
-
+  @Get('find-all-organization-records/:id')
+  //@UseGuards(TokenVerification)
+  findAllOrganizationRecords(@Param('id') id: string) {
+    return this.warehouseService.findAllOrganizationRecords(id);
+  }
+  @Get('find-all-global-products')
+  //@UseGuards(TokenVerification)
+  findAllGlobalProducts() {
+    return this.warehouseService.findAllGlobalProducts();
+  }
+  @Get('find-remaining-global/:id')
+  //@UseGuards(TokenVerification)
+  findRemainingGlobal(@Param('id') id: string) {
+    return this.warehouseService.findRemainingGlobal(id);
+  }
   @Get(':id')
   //@UseGuards(TokenVerification)
   findOne(@Param('id') id: string) {
     return this.warehouseService.findOne(id);
   }
 
-  @Get('find-all-organization-records/:id')
-  //@UseGuards(TokenVerification)
-  findAllOrganizationRecords(@Param('id') id: string) {
-    return this.warehouseService.findAllOrganizationRecords(id);
-  }
-
   @Put('changeQuantities')
   //@UseGuards(TokenVerification)
   async changeQuantities(
-    @Body() { id, value }: { id: string; value: number }
+    @Body() { id, value, date }: { id: string; value: number; date: Date }
   ) {
-    const result = await this.warehouseService.changeQuantities(id, value);
+    const result = await this.warehouseService.changeQuantities(
+      id,
+      value,
+      date
+    );
     switch (result.message) {
       case 'Warehouse updated.':
         return { result, status: HttpStatus.OK };
@@ -115,8 +127,12 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
       case 'Internal server error.':
         throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-        case 'Invalid or null quantity.':
-          throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid or null quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid or null quantity or or expiry date.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Not enough quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
       default:
         throw new HttpException(
           { message: 'Internal server error' },
@@ -149,21 +165,44 @@ export class WarehouseController {
         );
     }
   }
-  
 
-  /*@Delete(':id')
+  @Delete(':id')
   //@UseGuards(TokenVerification)
   async remove(@Param('id') id: string) {
     const result = await this.warehouseService.remove(id);
     switch (result.message) {
-      case 'Organization deleted.':
-        return {result,status: HttpStatus.OK};
-      case 'Organization not found.':
+      case 'Warehouse deleted.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
         throw new HttpException(result, HttpStatus.NOT_FOUND);
       case 'Internal server error.':
         throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
       default:
-        throw new HttpException({message:'Internal server error'}, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
-  }*/
+  }
+
+  @Put('updateQuantity/:id')
+  //@UseGuards(TokenVerification)
+  async updateQuantity(@Param('id') id: string, @Body() { quantity, currentProducts }: { quantity: number; currentProducts: any}) {
+    const result = await this.warehouseService.updateQuantity(id, quantity,currentProducts);
+    switch (result.message) {
+      case 'Warehouse updated.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Warehouse update failed.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Internal server error.':
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+      default:
+        throw new HttpException(
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
 }

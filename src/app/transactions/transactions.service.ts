@@ -29,4 +29,28 @@ export class TransactionsService {
       return undefined;
     }
   }
+ /* async checkExpirationDate(id: string,currentQuantity:number) {
+    try {
+      const warehouseTransactios = await WarehouseTransactio.scan('warehouseId').contains(id).exec();
+      const filteredWarehouseTransactios = warehouseTransactios.filter(
+        (row: any) =>
+          row.quantity > 0 
+      );
+      filteredWarehouseTransactios.sort((a, b) => b.expirationDate - a.expirationDate);
+      const currentDate = new Date();
+      let newExpirationDate:Date;
+      for (const item of filteredWarehouseTransactios) {
+        if(item.expirationDate > currentDate && currentQuantity>0){
+          currentQuantity -= item.quantity
+          newExpirationDate = item.expirationDate
+        }
+      }
+      if(currentQuantity<0){
+        currentQuantity = 0
+      }
+      return {scrapQuantity:currentQuantity, newExpirationDate:newExpirationDate};
+    } catch (err) {
+      return undefined;
+    }
+  }*/
 }

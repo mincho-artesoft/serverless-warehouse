@@ -12,32 +12,32 @@ const warehouseSchema = new dynamoose.Schema(
     },
     name_bg: {
       type: String,
-      default:'',
+      default: '',
       required: false,
     },
     brand_name_en: {
       type: String,
-      default:'',
+      default: '',
       required: false,
     },
     brand_name_bg: {
       type: String,
-      default:'',
+      default: '',
       required: false,
     },
     description_en: {
       type: String,
-      default:'',
+      default: '',
       required: false,
     },
     description_bg: {
       type: String,
-      default:'',
+      default: '',
       required: false,
     },
     ogranizationId: {
       type: String,
-      default:'global',
+      default: 'global',
       required: false,
     },
     unit: {
@@ -46,20 +46,39 @@ const warehouseSchema = new dynamoose.Schema(
     },
     quantity: {
       type: Number,
-      default:0,
+      default: 0,
       required: false,
     },
     tags: {
       type: Array,
-      default:[''],
+      default: [''],
       schema: [String],
       required: false,
     },
     price: {
       type: Number,
-      default:0,
+      default: 0,
       required: false,
     },
+    currentProducts: {
+        type: Array,
+        default: [],
+        schema: [{
+            "type": Object,
+            "schema": {
+              "quantity": Number,
+              "expirationDate":{
+                type: {
+                  value: Date,
+                  settings: {
+                    storage: 'iso',
+                  },
+                },
+              },
+            }
+          }],
+        required: false
+      },
   },
   {
     timestamps: {

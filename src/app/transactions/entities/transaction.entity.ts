@@ -40,4 +40,7 @@ const transactionSchema = new dynamoose.Schema(
     },
   }
 );
-export const WarehouseTransactio = dynamoose.model('WarehouseTransactios', transactionSchema);
+export const WarehouseTransactio = dynamoose.model(
+  'WarehouseTransactios',
+  transactionSchema
+);
