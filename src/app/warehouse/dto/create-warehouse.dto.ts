@@ -1,15 +1,42 @@
 
-  export interface CreateWarehouseDto {
-    id: string;
-    name_en: string;
-    name_bg?: string;
-    brand_name_en?: string;
-    brand_name_bg?: string;
-    description_en?: string;
-    description_bg?: string;
-    ogranizationId?: string;
-    unit: string;
-    quantity?: number;
-    tags?: string[];
-    price?: number;
-  }
+interface CurrentProduct {
+  quantity: number;
+  expirationDate: {
+    value: Date;
+  };
+}
+interface Ingredient {
+  quantity: number;
+  productId: string;
+}
+
+// Define the main interface for the "warehouseSchema"
+export interface CreateWarehouseDto {
+  id: string;
+  name: Array<{ key: string; value: string }>;
+  brand_name: string;
+  description: Array<{ key: string; value: string }>;
+  ogranizationId: string;
+  unit: string;
+  quantity: number;
+  tags: string[];
+  price: number;
+  currentProducts: CurrentProduct[];
+  ingredients: Ingredient[];
+  createdAt: {
+    created_at: {
+      value: Date;
+      settings: {
+        storage: 'iso';
+      };
+    };
+  };
+  updatedAt: {
+    updated_at: {
+      value: Date;
+      settings: {
+        storage: 'iso';
+      };
+    };
+  };
+}

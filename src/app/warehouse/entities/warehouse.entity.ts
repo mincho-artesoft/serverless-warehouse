@@ -6,33 +6,37 @@ const warehouseSchema = new dynamoose.Schema(
       type: String,
       hashKey: true,
     },
-    name_en: {
-      type: String,
-      required: true,
+    name: {
+      type: Array,
+      default: [],
+      schema: [
+        {
+          type: Object,
+          schema: {
+            key: String,
+            value: String,
+          },
+        },
+      ],
+      required: false,
     },
-    name_bg: {
+    brand_name: {
       type: String,
       default: '',
       required: false,
     },
-    brand_name_en: {
-      type: String,
-      default: '',
-      required: false,
-    },
-    brand_name_bg: {
-      type: String,
-      default: '',
-      required: false,
-    },
-    description_en: {
-      type: String,
-      default: '',
-      required: false,
-    },
-    description_bg: {
-      type: String,
-      default: '',
+    description: {
+      type: Array,
+      default: [],
+      schema: [
+        {
+          type: Object,
+          schema: {
+            key: String,
+            value: String,
+          },
+        },
+      ],
       required: false,
     },
     ogranizationId: {
@@ -61,24 +65,40 @@ const warehouseSchema = new dynamoose.Schema(
       required: false,
     },
     currentProducts: {
-        type: Array,
-        default: [],
-        schema: [{
-            "type": Object,
-            "schema": {
-              "quantity": Number,
-              "expirationDate":{
-                type: {
-                  value: Date,
-                  settings: {
-                    storage: 'iso',
-                  },
+      type: Array,
+      default: [],
+      schema: [
+        {
+          type: Object,
+          schema: {
+            quantity: Number,
+            expirationDate: {
+              type: {
+                value: Date,
+                settings: {
+                  storage: 'iso',
                 },
               },
-            }
-          }],
-        required: false
-      },
+            },
+          },
+        },
+      ],
+      required: false,
+    },
+    ingredients: {
+      type: Array,
+      default: [],
+      schema: [
+        {
+          type: Object,
+          schema: {
+            quantity: Number,
+            productId: String,
+          },
+        },
+      ],
+      required: false,
+    },
   },
   {
     timestamps: {

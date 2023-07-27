@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable,forwardRef,Inject } from '@nestjs/common';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { Warehouse } from './entities/warehouse.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +8,8 @@ import { TransactionsService } from '../transactions/transactions.service';
 @Injectable()
 export class WarehouseService {
   constructor(
-    private organizationService: OrganizationService,
+    @Inject(forwardRef(() => OrganizationService))
+    private readonly  organizationService: OrganizationService,
     private transactionsService: TransactionsService
   ) {}
 
@@ -52,7 +53,10 @@ export class WarehouseService {
     }
   }
 
-  async createOgranizationProduct(createWarehouseDto: CreateWarehouseDto) {
+  async createOgranizationProduct(
+    createWarehouseDto: CreateWarehouseDto,
+    request: any
+  ) {
     try {
       const organirazion = await this.organizationService.findOne(
         createWarehouseDto.ogranizationId
@@ -62,11 +66,15 @@ export class WarehouseService {
         if (isDuplicate.length > 0) {
           return { message: 'Warehouse exists.' };
         } else {
-          createWarehouseDto.id = uuidv4();
-          createWarehouseDto.quantity = 0;
-          const newWarehouse = new Warehouse(createWarehouseDto);
-          await newWarehouse.save();
-          return { message: 'Successful add warehouse.' };
+          if (createWarehouseDto.ogranizationId == 'global') {
+            return { message: 'Users cannot add global products.' };
+          } else {
+            createWarehouseDto.id = uuidv4();
+            createWarehouseDto.quantity = 0;
+            const newWarehouse = new Warehouse(createWarehouseDto);
+            await newWarehouse.save();
+            return { message: 'Successful add warehouse.' };
+          }
         }
       } else {
         return { message: 'Organirazion not found.' };
@@ -141,30 +149,36 @@ export class WarehouseService {
     }
   }
 
-  async update(id: string, createWarehouseDto: CreateWarehouseDto) {
+  async updateProduct(
+    id: string,
+    createWarehouseDto: CreateWarehouseDto,
+    request: any
+  ) {
     try {
       const isDuplicate = await this.findDublicate(createWarehouseDto);
       if (isDuplicate.length > 0) {
         return { message: 'Warehouse exists.' };
       } else {
+        if (
+          !request['user'].roles.includes('admin') &&
+          createWarehouseDto.ogranizationId == 'global'
+        ) {
+          return { message: 'You cant change global products.' };
+        }
+
         const warehouse = await this.findOne(id);
         if (warehouse) {
           if (
-            createWarehouseDto.name_en &&
-            createWarehouseDto.name_bg &&
-            createWarehouseDto.description_en &&
-            createWarehouseDto.description_bg &&
+            createWarehouseDto.name.length > 0 &&
+            createWarehouseDto.description.length > 0 &&
             createWarehouseDto.price &&
             createWarehouseDto.tags &&
-            createWarehouseDto.brand_name_en &&
-            createWarehouseDto.brand_name_bg
+            createWarehouseDto.brand_name &&
+            warehouse.ingredients.length == 0
           ) {
-            warehouse.name_en = createWarehouseDto.name_en;
-            warehouse.name_bg = createWarehouseDto.name_bg;
-            warehouse.description_en = createWarehouseDto.description_en;
-            warehouse.description_bg = createWarehouseDto.description_bg;
-            warehouse.brand_name_en = createWarehouseDto.brand_name_en;
-            warehouse.brand_name_bg = createWarehouseDto.brand_name_bg;
+            warehouse.name = createWarehouseDto.name;
+            warehouse.description = createWarehouseDto.description;
+            warehouse.brand_name = createWarehouseDto.brand_name;
             warehouse.price = createWarehouseDto.price;
             warehouse.tags = createWarehouseDto.tags;
             await warehouse.save();
@@ -179,7 +193,54 @@ export class WarehouseService {
       return { message: 'Internal server error.' };
     }
   }
-  
+
+  async updateCookedProduct(
+    id: string,
+    createWarehouseDto: CreateWarehouseDto,
+    request: any
+  ) {
+    try {
+      const isDuplicate = await this.findDublicate(createWarehouseDto);
+      if (isDuplicate.length > 0) {
+        return { message: 'Warehouse exists.' };
+      } else {
+        if (
+          !request['user'].roles.includes('admin') &&
+          createWarehouseDto.ogranizationId == 'global'
+        ) {
+          return { message: 'You cant change global products.' };
+        }
+
+        const warehouse = await this.findOne(id);
+        if (warehouse) {
+          if (
+            createWarehouseDto.name.length > 0 &&
+            createWarehouseDto.description.length > 0 &&
+            createWarehouseDto.price &&
+            createWarehouseDto.tags &&
+            createWarehouseDto.brand_name &&
+            createWarehouseDto.ingredients.length > 0 &&
+            warehouse.ingredients.length > 0
+          ) {
+            warehouse.name = createWarehouseDto.name;
+            warehouse.description = createWarehouseDto.description;
+            warehouse.brand_name = createWarehouseDto.brand_name;
+            warehouse.price = createWarehouseDto.price;
+            warehouse.tags = createWarehouseDto.tags;
+            warehouse.ingredients = createWarehouseDto.ingredients;
+            await warehouse.save();
+            return { message: 'Warehouse updated.' };
+          }
+        } else {
+          return { message: 'Warehouse not found.' };
+        }
+        return { message: 'Warehouse update failed.' };
+      }
+    } catch (error) {
+      return { message: 'Internal server error.' };
+    }
+  }
+
   async changeQuantities(id: string, value: number, date: Date) {
     const result = { message: '', warning: '' };
     try {
@@ -188,7 +249,12 @@ export class WarehouseService {
         if (warehouse) {
           const expirationDate = new Date(date);
           const currentDate = new Date();
-          if (value > 0 && date && currentDate < expirationDate) {
+          if (
+            value > 0 &&
+            date &&
+            currentDate < expirationDate &&
+            warehouse.ingredients.length < 0
+          ) {
             const calculateQuantity = warehouse.quantity + value;
             warehouse.quantity = calculateQuantity;
 
@@ -201,18 +267,50 @@ export class WarehouseService {
               result.message = 'Warehouse update failed.';
               return result;
             }
-             warehouse.currentProducts.some(a =>{
-              if(a.expirationDate < currentDate){
+            warehouse.currentProducts.some((a) => {
+              if (a.expirationDate < currentDate) {
                 result.warning = 'There are unfit products in the warehouse.';
               }
-             })
+            });
             warehouse.currentProducts.push({
               quantity: value,
               expirationDate: date,
-            });      
+            });
             await warehouse.save();
             result.message = 'Warehouse updated.';
             return result;
+          } else if (
+            value > 0 &&
+            date &&
+            currentDate < expirationDate &&
+            warehouse.ingredients.length > 0
+          ) {
+            result.message = 'You cannot add cooked food with this function';
+            return result;
+            //  const calculateQuantity = warehouse.quantity + value;
+            //   warehouse.quantity = calculateQuantity;
+
+            //   const log = await this.transactionsService.create({
+            //     warehouseId: id,
+            //     quantity: value,
+            //   });
+            //   console.log(log);
+            //   if (log.message != 'Successful add WarehouseTransactio.') {
+            //     result.message = 'Warehouse update failed.';
+            //     return result;
+            //   }
+            //   warehouse.currentProducts.some((a) => {
+            //     if (a.expirationDate < currentDate) {
+            //       result.warning = 'There are unfit products in the warehouse.';
+            //     }
+            //   });
+            //   warehouse.currentProducts.push({
+            //     quantity: value,
+            //     expirationDate: date,
+            //   });
+            //   await warehouse.save();
+            //   result.message = 'Warehouse updated.';
+            //   return result;
           } else if (value < 0) {
             let issued: number = Math.abs(value);
             let i = 0;
@@ -220,12 +318,12 @@ export class WarehouseService {
             warehouse.currentProducts.sort(
               (a, b) => a.expirationDate - b.expirationDate
             );
-            while (issued > 0 && i< warehouse.currentProducts.length) {
+            while (issued > 0 && i < warehouse.currentProducts.length) {
               const current = warehouse.currentProducts[i];
               if (current.expirationDate > currentDate) {
                 if (current.quantity <= issued) {
                   issued -= current.quantity;
-                }else{
+                } else {
                   current.quantity -= issued;
                   issued = 0;
                   newProduct.push(current);
@@ -236,7 +334,12 @@ export class WarehouseService {
               }
               i++;
             }
-            newProduct.push(...warehouse.currentProducts.splice(i,warehouse.currentProducts.length-1));
+            newProduct.push(
+              ...warehouse.currentProducts.splice(
+                i,
+                warehouse.currentProducts.length - 1
+              )
+            );
             if (issued == 0) {
               warehouse.quantity = warehouse.quantity + value;
               warehouse.currentProducts = newProduct;
@@ -254,7 +357,7 @@ export class WarehouseService {
               return result;
             }
             result.message = 'Not enough quantity.';
-            return result;      
+            return result;
           }
         } else {
           result.message = 'Warehouse not found.';
@@ -269,11 +372,143 @@ export class WarehouseService {
     }
   }
 
-  async updateQuantity(id: string, quantity: number, currentProducts:any) {
+  async checkQuantities(id: string, value: number) {
+    const result = { sufficientQuantity: false, warning: false };
+    try {
+      if (value && value != 0) {
+        const warehouse = await this.findOne(id);
+        if (warehouse) {
+          const currentDate = new Date();
+
+          let issued: number = Math.abs(value);
+          let i = 0;
+          const newProduct = [];
+          warehouse.currentProducts.sort(
+            (a, b) => a.expirationDate - b.expirationDate
+          );
+          while (issued > 0 && i < warehouse.currentProducts.length) {
+            const current = warehouse.currentProducts[i];
+            if (current.expirationDate > currentDate) {
+              if (current.quantity <= issued) {
+                issued -= current.quantity;
+              } else {
+                current.quantity -= issued;
+                issued = 0;
+                newProduct.push(current);
+              }
+            } else {
+              result.warning = true;
+              newProduct.push(current);
+            }
+            i++;
+          }
+          newProduct.push(
+            ...warehouse.currentProducts.splice(
+              i,
+              warehouse.currentProducts.length - 1
+            )
+          );
+          if (issued == 0) {
+            result.sufficientQuantity = true;
+            return result;
+          }
+          result.sufficientQuantity = false;
+          return result;
+        } else {
+          result.sufficientQuantity = false;
+          return result;
+        }
+      }
+      result.sufficientQuantity = false;
+      return result;
+    } catch (error) {
+      result.sufficientQuantity = false;
+      return result;
+    }
+  }
+
+  async Cook(id: string, value: number, date: Date) {
+    const result = { message: '',spoiledIngredients: Array};
+    try {
+      const warehouse = await this.findOne(id);
+      const expirationDate = new Date(date);
+      const currentDate = new Date();
+      if (
+        value &&
+        warehouse &&
+        value > 0 &&
+        date &&
+        currentDate < expirationDate &&
+        warehouse.ingredients.length > 0
+      ) {
+        const checkedIngredients = warehouse.ingredients.map((item) => ({
+          ...item,
+        }));
+        let checked = false;
+        for (let i = 0; i < warehouse.ingredients.length; i++) {
+          const currentRes = this.checkQuantities(
+            warehouse.ingredients[i].id,
+            value * warehouse.ingredients[i].value
+          );
+          checkedIngredients[i].result = currentRes;
+        }
+
+        checked = !checkedIngredients.some(
+          (obj) => obj.result.sufficientQuantity == false
+        );
+
+        if (checked) {
+
+          for (const ingredient of warehouse.ingredients) {
+            this.changeQuantities(
+              ingredient.id,
+              -value * ingredient.value,
+              new Date()
+            );
+          }
+          
+          const calculateQuantity = warehouse.quantity + value;
+          warehouse.quantity = calculateQuantity;
+
+          const log = await this.transactionsService.create({
+            warehouseId: id,
+            quantity: value,
+          });
+
+          console.log(log);
+          if (log.message != 'Successful add WarehouseTransactio.') {
+            result.message = 'Warehouse update failed.';
+            return result;
+          }
+
+          warehouse.currentProducts.push({
+            quantity: value,
+            expirationDate: date,
+          });
+
+          await warehouse.save();
+          result.message = 'Warehouse updated.';
+          return result;
+        } else {
+          const resultArray = checkedIngredients.filter(obj => obj.result.sufficientQuantity == false);
+          result.message = 'No sufficient quantity of the ingredients.';
+          result.spoiledIngredients = resultArray;
+          return result;
+        }
+      }
+      result.message = 'Invalid or null quantity or or expiry date.';
+      return result;
+    } catch (error) {
+      result.message = 'Internal server error.';
+      return result;
+    }
+  }
+
+  async updateQuantity(id: string, quantity: number, currentProducts: any) {
     try {
       const warehouse = await this.findOne(id);
       if (warehouse) {
-        if (typeof quantity == 'number' && quantity>=0 && currentProducts) {
+        if (typeof quantity == 'number' && quantity >= 0 && currentProducts) {
           warehouse.quantity = quantity;
           warehouse.currentProducts = currentProducts;
           await warehouse.save();
@@ -304,7 +539,7 @@ export class WarehouseService {
     const result = await Warehouse.scan().exec();
     const dublicate = result.filter(
       (row: any) =>
-        row.name_en == warehouse.name_en &&
+        row.name[0] == warehouse.name[0] &&
         row.ogranizationId == warehouse.ogranizationId
     );
     return dublicate;

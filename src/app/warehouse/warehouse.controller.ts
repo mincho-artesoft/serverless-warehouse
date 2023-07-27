@@ -10,10 +10,11 @@ import {
   HttpStatus,
   UseGuards,
   Put,
+  Request,
 } from '@nestjs/common';
 import { WarehouseService } from './warehouse.service';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
-import { TokenVerification } from '@nx-serverless/auth';
+//import { TokenVerification } from '@nx-serverless/auth';
 
 @Controller('warehouse')
 export class WarehouseController {
@@ -38,11 +39,15 @@ export class WarehouseController {
         );
     }
   }
-  @Post('new')
+  @Post('createOrganizationProduct')
   //@UseGuards(TokenVerification)
-  async createNew(@Body() createWarehouseDto: CreateWarehouseDto) {
+  async createOrganizationProduct(
+    @Request() request,
+    @Body() createWarehouseDto: CreateWarehouseDto
+  ) {
     const result = await this.warehouseService.createOgranizationProduct(
-      createWarehouseDto
+      createWarehouseDto,
+      request
     );
     switch (result.message) {
       case 'Warehouse add failed.':
@@ -52,6 +57,8 @@ export class WarehouseController {
       case 'Warehouse exists.':
         throw new HttpException(result, HttpStatus.CONFLICT);
       case 'Organirazion not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Users cannot add global products.':
         throw new HttpException(result, HttpStatus.NOT_FOUND);
       default:
         throw new HttpException(
@@ -143,10 +150,15 @@ export class WarehouseController {
   @Put(':id')
   //@UseGuards(TokenVerification)
   async update(
+    @Request() request,
     @Param('id') id: string,
     @Body() createWarehouseDto: CreateWarehouseDto
   ) {
-    const result = await this.warehouseService.update(id, createWarehouseDto);
+    const result = await this.warehouseService.updateProduct(
+      id,
+      createWarehouseDto,
+      request
+    );
     switch (result.message) {
       case 'Warehouse updated.':
         return { result, status: HttpStatus.OK };
@@ -187,8 +199,16 @@ export class WarehouseController {
 
   @Put('updateQuantity/:id')
   //@UseGuards(TokenVerification)
-  async updateQuantity(@Param('id') id: string, @Body() { quantity, currentProducts }: { quantity: number; currentProducts: any}) {
-    const result = await this.warehouseService.updateQuantity(id, quantity,currentProducts);
+  async updateQuantity(
+    @Param('id') id: string,
+    @Body()
+    { quantity, currentProducts }: { quantity: number; currentProducts: any }
+  ) {
+    const result = await this.warehouseService.updateQuantity(
+      id,
+      quantity,
+      currentProducts
+    );
     switch (result.message) {
       case 'Warehouse updated.':
         return { result, status: HttpStatus.OK };
