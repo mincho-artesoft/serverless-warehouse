@@ -67,7 +67,7 @@ export class WarehouseController {
         );
     }
   }
-  @Post(':id')
+  @Post('auto/:id')
   //@UseGuards(TokenVerification)
   async autoCreate(@Param('id') id: string) {
     const result = await this.warehouseService.autoCreate(id);

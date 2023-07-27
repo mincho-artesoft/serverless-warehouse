@@ -17,14 +17,14 @@ export class TransactionsService {
   }
 
   async findAll() {
-    const allOrganizations = await WarehouseTransactio.scan().exec();
-    return allOrganizations;
+    const transactions = await WarehouseTransactio.scan().exec();
+    return transactions;
   }
 
   async findOne(id: string) {
     try {
-      const organization = await WarehouseTransactio.get(id);
-      return organization;
+      const transaction = await WarehouseTransactio.get(id);
+      return transaction;
     } catch (err) {
       return undefined;
     }
