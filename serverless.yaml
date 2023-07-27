@@ -1,0 +1,56 @@
+service: serverless-warehouse
+
+useDotenv: true
+
+plugins:
+  - serverless-offline
+  - serverless-esbuild
+
+provider:
+  name: aws
+  memorySize: 2048
+  runtime: nodejs18.x
+  stage: dev
+  region: eu-central-1
+  environment:
+    REGION: ${env:REGION}
+    APP_ENV: ${env:APP_ENV}
+
+  iam:
+    role:
+      statements:   # Add this section to provide necessary permissions
+        - Effect: "Allow"
+          Action:
+            - "dynamodb:*"  # This allows all DynamoDB actions
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/*"  # This allows all DynamoDB tables in the account
+
+functions:
+  http:
+    handler: src/app/serverless/http.handler
+    events:
+      - httpApi:
+          method: '*'
+          path: /api/{proxy+}
+
+custom:
+  serverless-offline:
+    timeout: 60
+    httpPort: ${env:HTTP_PORT}
+  esbuild:
+    tsconfig: './tsconfig.app.json'
+    bundle: true
+    minify: false
+    target: es2022
+    sourcemap: true
+    sourcesContent: false
+    define: {'require.resolve': undefined}
+    plugins: './esbuildPlugins.js'
+    external:
+      - 'ws'
+      - 'class-transformer/storage'
+      - '@nestjs/microservices'
+      - '@nestjs/microservices/microservices-module'
+
+package:
+  excludeDevDependencies: true
