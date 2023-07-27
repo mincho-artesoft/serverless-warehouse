@@ -2,14 +2,14 @@ import { Injectable,forwardRef,Inject } from '@nestjs/common';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { Warehouse } from './entities/warehouse.entity';
 import { v4 as uuidv4 } from 'uuid';
-import { OrganizationService } from '@nx-serverless/auth';
+import { OrganizationService, UserOrganizationRoleService } from '@nx-serverless/auth';
 import { TransactionsService } from '../transactions/transactions.service';
 
 @Injectable()
 export class WarehouseService {
   constructor(
-    @Inject(forwardRef(() => OrganizationService))
-    private readonly  organizationService: OrganizationService,
+    @Inject(OrganizationService)
+    private organizationService: OrganizationService,
     private transactionsService: TransactionsService
   ) {}
 
