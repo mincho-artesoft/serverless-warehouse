@@ -44,6 +44,33 @@ const odrderSchema = new dynamoose.Schema(
       ],
       required: true,
     },
+    deliveryDate: {
+      required: true,
+      type: {
+        value: Date,
+        settings: {
+          storage: 'iso',
+        },
+      },
+    },
+    address: {
+      type: Object,
+      schema: {
+        street: String,
+        city: String,
+        state: String,
+        zipCode: Number,
+        country: String,
+        location: {
+          type: Object,
+          schema: {
+            latitude: Number,
+            longitude: Number,
+          },
+        },
+      },
+      required: true,
+    },
   },
   {
     timestamps: {

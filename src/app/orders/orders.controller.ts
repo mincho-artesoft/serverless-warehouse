@@ -31,12 +31,15 @@ export class OrdersController {
         return { result, status: HttpStatus.CREATED };
       case 'You cannot add an order with someone elses id.':
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
-        case 'Organisation not found.':
-          throw new HttpException(result, HttpStatus.BAD_REQUEST);
-          case 'Products not found.':
-            throw new HttpException(result, HttpStatus.BAD_REQUEST);
-            case 'Invalid price.':
-              throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Organisation not found.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Products not found.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid price.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid delivery time.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+
       default:
         throw new HttpException(
           { message: 'Internal server error' },
@@ -71,7 +74,6 @@ export class OrdersController {
   @Put(':id')
   @UseGuards(TokenVerification)
   update(@Param('id') id: string, @Body() updateOrderDto: CreateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
+    return this.ordersService.update(id, updateOrderDto);
   }
-
 }

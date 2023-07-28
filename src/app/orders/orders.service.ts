@@ -30,6 +30,13 @@ export class OrdersService {
         return { message: 'Organisation not found.' };
       }
 
+      const deliveryDate = new Date(createOrderDto.deliveryDate)
+      const currentDate = new Date();
+      const timeDifference = deliveryDate.getTime() - currentDate.getTime();
+      if (timeDifference < 3600000) {
+        return { message: 'Invalid delivery time.' };
+      }
+
       const allOrganizationsProducts =
         await this.warehouseService.findAllOrganizationCookedProducts(
           createOrderDto.organizationId
@@ -101,7 +108,7 @@ export class OrdersService {
     }
   }
 
-  update(id: number, createOrderDto: CreateOrderDto) {
+  update(id: string, createOrderDto: CreateOrderDto) {
     return `This action updates a #${id} order`;
   }
 }
