@@ -18,7 +18,7 @@ const warehouseSchema = new dynamoose.Schema(
           },
         },
       ],
-      required: false,
+      required: true,
     },
     brand_name: {
       type: String,

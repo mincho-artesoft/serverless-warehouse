@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   HttpException,
@@ -14,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { WarehouseService } from './warehouse.service';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
-//import { TokenVerification } from '@nx-serverless/auth';
+import { TokenVerification } from '@nx-serverless/auth';
 
 @Controller('warehouse')
 export class WarehouseController {
@@ -22,7 +21,7 @@ export class WarehouseController {
 
   //ще е само за админ
   @Post()
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   async create(@Body() createWarehouseDto: CreateWarehouseDto) {
     const result = await this.warehouseService.create(createWarehouseDto);
     switch (result.message) {
@@ -34,13 +33,13 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.CONFLICT);
       default:
         throw new HttpException(
-          { message: 'Warehouse add failed.' },
-          HttpStatus.BAD_REQUEST
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
   }
   @Post('createOrganizationProduct')
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   async createOrganizationProduct(
     @Request() request,
     @Body() createWarehouseDto: CreateWarehouseDto
@@ -58,17 +57,17 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.CONFLICT);
       case 'Organirazion not found.':
         throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Users cannot add global products.':
+      case 'Ingredient not found.':
         throw new HttpException(result, HttpStatus.NOT_FOUND);
       default:
         throw new HttpException(
-          { message: 'Warehouse add failed.' },
-          HttpStatus.BAD_REQUEST
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
   }
   @Post('auto/:id')
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   async autoCreate(@Param('id') id: string) {
     const result = await this.warehouseService.autoCreate(id);
     switch (result.message) {
@@ -76,47 +75,49 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
       case 'Successful add warehouse.':
         return { result, status: HttpStatus.CREATED };
-      case 'Warehouse exists.':
-        throw new HttpException(result, HttpStatus.CONFLICT);
       case 'Have already been added.':
         throw new HttpException(result, HttpStatus.CONFLICT);
-
       default:
         throw new HttpException(
-          { message: 'Warehouse add failed.' },
-          HttpStatus.BAD_REQUEST
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
   }
 
   @Get()
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   findAll() {
     return this.warehouseService.findAll();
   }
-  @Get('find-all-organization-records/:id')
-  //@UseGuards(TokenVerification)
-  findAllOrganizationRecords(@Param('id') id: string) {
-    return this.warehouseService.findAllOrganizationRecords(id);
+  @Get('find-all-organization-products/:id')
+  @UseGuards(TokenVerification)
+  findAllOrganizationProducts(@Param('id') id: string) {
+    return this.warehouseService.findAllOrganizationProducts(id);
+  }
+  @Get('find-all-organization-cooked-products/:id')
+  @UseGuards(TokenVerification)
+  findAllOrganizationCookedProducts(@Param('id') id: string) {
+    return this.warehouseService.findAllOrganizationCookedProducts(id);
   }
   @Get('find-all-global-products')
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   findAllGlobalProducts() {
     return this.warehouseService.findAllGlobalProducts();
   }
   @Get('find-remaining-global/:id')
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   findRemainingGlobal(@Param('id') id: string) {
     return this.warehouseService.findRemainingGlobal(id);
   }
   @Get(':id')
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   findOne(@Param('id') id: string) {
     return this.warehouseService.findOne(id);
   }
 
   @Put('changeQuantities')
-  //@UseGuards(TokenVerification)
+  @UseGuards(TokenVerification)
   async changeQuantities(
     @Body() { id, value, date }: { id: string; value: number; date: Date }
   ) {
@@ -138,6 +139,8 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
       case 'Invalid or null quantity or or expiry date.':
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'You cannot add cooked food with this function.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
       case 'Not enough quantity.':
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
       default:
@@ -147,29 +150,31 @@ export class WarehouseController {
         );
     }
   }
-  @Put(':id')
-  //@UseGuards(TokenVerification)
-  async update(
-    @Request() request,
-    @Param('id') id: string,
-    @Body() createWarehouseDto: CreateWarehouseDto
+  @Put('cook')
+  @UseGuards(TokenVerification)
+  async cook(
+    @Body() { id, value, date }: { id: string; value: number; date: Date }
   ) {
-    const result = await this.warehouseService.updateProduct(
-      id,
-      createWarehouseDto,
-      request
-    );
+    const result = await this.warehouseService.cook(id, value, date);
     switch (result.message) {
       case 'Warehouse updated.':
         return { result, status: HttpStatus.OK };
       case 'Warehouse not found.':
         throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Warehouse exists.':
-        throw new HttpException(result, HttpStatus.CONFLICT);
       case 'Warehouse update failed.':
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
       case 'Internal server error.':
         throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+      case 'Invalid or null quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid or null quantity or or expiry date.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'You cannot add cooked food with this function.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'No sufficient quantity of the ingredients.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Not enough quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
       default:
         throw new HttpException(
           { message: 'Internal server error' },
@@ -177,26 +182,6 @@ export class WarehouseController {
         );
     }
   }
-
-  @Delete(':id')
-  //@UseGuards(TokenVerification)
-  async remove(@Param('id') id: string) {
-    const result = await this.warehouseService.remove(id);
-    switch (result.message) {
-      case 'Warehouse deleted.':
-        return { result, status: HttpStatus.OK };
-      case 'Warehouse not found.':
-        throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Internal server error.':
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-      default:
-        throw new HttpException(
-          { message: 'Internal server error' },
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-  }
-
   @Put('updateQuantity/:id')
   //@UseGuards(TokenVerification)
   async updateQuantity(
@@ -216,6 +201,77 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.NOT_FOUND);
       case 'Warehouse update failed.':
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Internal server error.':
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+        case 'Incorrect data.':
+          throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      default:
+        throw new HttpException(
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+  @Put('update-product/:id')
+  @UseGuards(TokenVerification)
+  async updateProduct(
+    @Request() request,
+    @Param('id') id: string,
+    @Body() createWarehouseDto: CreateWarehouseDto
+  ) {
+    const result = await this.warehouseService.updateProduct(
+      id,
+      createWarehouseDto,
+      request
+    );
+    switch (result.message) {
+      case 'Warehouse updated.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Warehouse update failed.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Internal server error.':
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+      default:
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  @Put('update-cooked-product/:id')
+  @UseGuards(TokenVerification)
+  async updateCookedProduct(
+    @Request() request,
+    @Param('id') id: string,
+    @Body() createWarehouseDto: CreateWarehouseDto
+  ) {
+    const result = await this.warehouseService.updateCookedProduct(
+      id,
+      createWarehouseDto,
+      request
+    );
+    switch (result.message) {
+      case 'Warehouse updated.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Warehouse update failed.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Internal server error.':
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+      default:
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Delete(':id')
+  @UseGuards(TokenVerification)
+  async remove(@Param('id') id: string) {
+    const result = await this.warehouseService.remove(id);
+    switch (result.message) {
+      case 'Warehouse deleted.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
       case 'Internal server error.':
         throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
       default:

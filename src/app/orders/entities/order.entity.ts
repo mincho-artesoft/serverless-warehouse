@@ -1,22 +1,34 @@
 import * as dynamoose from 'dynamoose';
 
-const transactionSchema = new dynamoose.Schema(
+const odrderSchema = new dynamoose.Schema(
   {
     id: {
       type: String,
       hashKey: true,
     },
-    warehouseId: {
-      type: String,
-      required: true,
-    },
-    quantity: {
+    price: {
       type: Number,
+      default: 0,
       required: true,
     },
-    type:{
-      type: String,
-      required: false,
+    status: {
+        type: String,
+        default: 0,
+        required: true,
+      },
+    products: {
+      type: Array,
+      default: [],
+      schema: [
+        {
+          type: Object,
+          schema: {
+            productsId: String,
+            quantity: Number,
+          },
+        },
+      ],
+      required: true,
     }
   },
   {
@@ -44,7 +56,4 @@ const transactionSchema = new dynamoose.Schema(
     },
   }
 );
-export const WarehouseTransactio = dynamoose.model(
-  'WarehouseTransactios',
-  transactionSchema
-);
+export const Order = dynamoose.model('Orders', odrderSchema);
