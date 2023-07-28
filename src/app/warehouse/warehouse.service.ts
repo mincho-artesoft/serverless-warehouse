@@ -9,14 +9,14 @@ import { TransactionsService } from '../transactions/transactions.service';
 export class WarehouseService {
   constructor(
     @Inject(OrganizationService)
-    private organizationService: OrganizationService,
+    public organizationService: OrganizationService,
     private transactionsService: TransactionsService
   ) {}
 
   //ще е само за админ
   async create(createWarehouseDto: CreateWarehouseDto) {
     try {
-      createWarehouseDto.ogranizationId = 'global';
+      createWarehouseDto.organizationId = 'global';
       const isDuplicate = await this.findDublicate(createWarehouseDto);
       if (isDuplicate.length > 0) {
         return { message: 'Warehouse exists.' };
@@ -44,7 +44,7 @@ export class WarehouseService {
       globalProducts.forEach((element) => {
         const newWarehouse = new Warehouse(element);
         newWarehouse.id = uuidv4();
-        newWarehouse.ogranizationId = id;
+        newWarehouse.organizationId = id;
         newWarehouse.save();
       });
       return { message: 'Successful add warehouse.' };
@@ -60,7 +60,7 @@ export class WarehouseService {
   ) {
     try {
       const organirazion = await this.organizationService.findOne(
-        createWarehouseDto.ogranizationId
+        createWarehouseDto.organizationId
       );
       if (organirazion) {
         const isDuplicate = await this.findDublicate(createWarehouseDto);
@@ -94,7 +94,7 @@ export class WarehouseService {
   }
 
   async findAll() {
-    
+
     const allWarehouses = await Warehouse.scan().exec();
     return allWarehouses;
   }
@@ -112,7 +112,7 @@ export class WarehouseService {
     try {
       const result = await Warehouse.scan().exec();
       if (result.length > 0) {
-        return result.filter((row: any) => row.ogranizationId == 'global');
+        return result.filter((row: any) => row.organizationId == 'global');
       } else {
         return [];
       }
@@ -126,7 +126,7 @@ export class WarehouseService {
       const result = await Warehouse.scan().exec();
       if (result.length > 0) {
         return result.filter(
-          (row: any) => row.ogranizationId == id && row.ingredients.length == 0
+          (row: any) => row.organizationId == id && row.ingredients.length == 0
         );
       } else {
         return [];
@@ -141,7 +141,7 @@ export class WarehouseService {
       const result = await Warehouse.scan().exec();
       if (result.length > 0) {
         return result.filter(
-          (row: any) => row.ogranizationId == id && row.ingredients.length > 0
+          (row: any) => row.organizationId == id && row.ingredients.length > 0
         );
       } else {
         return [];
@@ -158,10 +158,10 @@ export class WarehouseService {
         const result = await Warehouse.scan().exec();
         if (result.length > 0) {
           const organizationProducts = result.filter(
-            (row: any) => row.ogranizationId == id
+            (row: any) => row.organizationId == id
           );
           const globalProducts = result.filter(
-            (row: any) => row.ogranizationId == 'global'
+            (row: any) => row.organizationId == 'global'
           );
           const uniqueProducts = globalProducts.filter((obj1) => {
             const isDuplicate = organizationProducts.some(
@@ -188,7 +188,7 @@ export class WarehouseService {
     try {
       if (
         !request['user'].roles.includes('admin') &&
-        createWarehouseDto.ogranizationId == 'global'
+        createWarehouseDto.organizationId == 'global'
       ) {
         return { message: 'You cant change global products.' };
       }
@@ -228,7 +228,7 @@ export class WarehouseService {
     try {
       if (
         !request['user'].roles.includes('admin') &&
-        createWarehouseDto.ogranizationId == 'global'
+        createWarehouseDto.organizationId == 'global'
       ) {
         return { message: 'You cant change global products.' };
       }
@@ -563,9 +563,9 @@ export class WarehouseService {
   }
   async remove(id: string) {
     try {
-      const organization = await this.findOne(id);
-      if (organization) {
-        await organization.delete();
+      const warehouse = await this.findOne(id);
+      if (warehouse) {
+        await warehouse.delete();
         return { message: 'Warehouse deleted.' };
       }
       return { message: 'Warehouse not found.' };
@@ -579,7 +579,7 @@ export class WarehouseService {
     const dublicate = result.filter(
       (row: any) =>
         row.name[0].value == warehouse.name[0].value &&
-        row.ogranizationId == warehouse.ogranizationId
+        row.organizationId == warehouse.organizationId
     );
 
     return dublicate;

@@ -39,7 +39,7 @@ const warehouseSchema = new dynamoose.Schema(
       ],
       required: false,
     },
-    ogranizationId: {
+    organizationId: {
       type: String,
       default: 'global',
       required: false,

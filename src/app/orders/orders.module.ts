@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { WarehouseModule } from '../warehouse/warehouse.module';
+import { AuthModule } from '@nx-serverless/auth';
 
 @Module({
-  imports:[WarehouseModule],
+  imports:[WarehouseModule,AuthModule],
   controllers: [OrdersController],
   providers: [OrdersService]
 })

@@ -6,16 +6,30 @@ const odrderSchema = new dynamoose.Schema(
       type: String,
       hashKey: true,
     },
+    userId:{
+      type: String,
+      required: true,
+    },
+    organizationId:{
+      type: String,
+      required: true,
+    },
     price: {
       type: Number,
-      default: 0,
       required: true,
     },
     status: {
-        type: String,
-        default: 0,
-        required: true,
-      },
+      type: String,
+      required: true,
+    },
+    peymentMethod: {
+      type: String,
+      required: true,
+    },
+    peymentStatis: {
+      type: String,
+      required: true,
+    },
     products: {
       type: Array,
       default: [],
@@ -23,13 +37,13 @@ const odrderSchema = new dynamoose.Schema(
         {
           type: Object,
           schema: {
-            productsId: String,
+            id: String,
             quantity: Number,
           },
         },
       ],
       required: true,
-    }
+    },
   },
   {
     timestamps: {

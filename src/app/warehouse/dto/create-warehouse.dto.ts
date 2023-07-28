@@ -16,7 +16,7 @@ export interface CreateWarehouseDto {
   name: Array<{ key: string; value: string }>;
   brand_name: string;
   description: Array<{ key: string; value: string }>;
-  ogranizationId: string;
+  organizationId: string;
   unit: string;
   quantity: number;
   tags: string[];
