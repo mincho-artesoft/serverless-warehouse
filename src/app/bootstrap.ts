@@ -52,28 +52,13 @@ export const bootstrapServer = async (): Promise<NestApp> => {
   return { app, instance };
 };
 
-
-export const setupSwagger = (app: INestApplication & NestFastifyApplication, path: string) => {
-  const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('API description')
-    .setVersion('1.0')
-    .addTag('beta')
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/swagger', app, document);
-};
-
 export const setupNestApp = (app: INestApplication & NestFastifyApplication) => {
   app.use(compression());
   app.use(cookieParser());
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/warehouse');
   app.enableCors({
     allowedHeaders:"*",
     origin: "*"
   });
-
-  const swaggerPath = 'api/swagger';
-  setupSwagger(app, swaggerPath);
 };
