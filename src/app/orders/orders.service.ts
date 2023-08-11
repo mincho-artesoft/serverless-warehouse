@@ -14,7 +14,7 @@ export class OrdersService {
     private warehouseService: WarehouseService
   ) {}
 
-  async create(createOrderDto: CreateOrderDto, request: any) {
+/*   async create(createOrderDto: CreateOrderDto, request: any) {
     try {
       if (
         !request['user'].roles.includes('admin') &&
@@ -110,5 +110,5 @@ export class OrdersService {
 
   update(id: string, createOrderDto: CreateOrderDto) {
     return `This action updates a #${id} order`;
-  }
+  } */
 }

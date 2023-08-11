@@ -5,7 +5,7 @@ import { AuthModule, AuthOrganizationModule } from '@nx-serverless/auth';
 import { TransactionsModule } from '../transactions/transactions.module';
 
 @Module({
-  imports:[AuthModule,forwardRef(() => AuthOrganizationModule),TransactionsModule],
+  imports:[/* AuthModule,forwardRef(() => AuthOrganizationModule) ,*/TransactionsModule],
   controllers: [WarehouseController],
   providers: [WarehouseService],
   exports: [WarehouseService]

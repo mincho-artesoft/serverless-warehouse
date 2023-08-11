@@ -5,7 +5,7 @@ import { TransactionsService } from './transactions.service';
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
-  @Get()
+  /* @Get()
   findAll() {
     return this.transactionsService.findAll();
   }
@@ -13,5 +13,5 @@ export class TransactionsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.transactionsService.findOne(id);
-  }
+  } */
 }

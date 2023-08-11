@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class TransactionsService {
-  async create(createTransactionDto: CreateTransactionDto) {
+  /* async create(createTransactionDto: CreateTransactionDto) {
     try {
       createTransactionDto.id = uuidv4();
       const newWarehouse = new WarehouseTransactio(createTransactionDto);
@@ -28,7 +28,7 @@ export class TransactionsService {
     } catch (err) {
       return undefined;
     }
-  }
+  } */
  /* async checkExpirationDate(id: string,currentQuantity:number) {
     try {
       const warehouseTransactios = await WarehouseTransactio.scan('warehouseId').contains(id).exec();

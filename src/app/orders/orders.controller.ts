@@ -20,7 +20,7 @@ import { TokenVerification } from '@nx-serverless/auth';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Post()
+/*   @Post()
   @UseGuards(TokenVerification)
   async create(@Request() request, @Body() createWarehouseDto: CreateOrderDto) {
     const result = await this.ordersService.create(createWarehouseDto, request);
@@ -75,5 +75,5 @@ export class OrdersController {
   @UseGuards(TokenVerification)
   update(@Param('id') id: string, @Body() updateOrderDto: CreateOrderDto) {
     return this.ordersService.update(id, updateOrderDto);
-  }
+  } */
 }

@@ -7,7 +7,7 @@ import { TransactionsService } from '../transactions/transactions.service';
 
 @Injectable()
 export class WarehouseService {
-  constructor(
+  /* constructor(
     @Inject(OrganizationService)
     public organizationService: OrganizationService,
     private transactionsService: TransactionsService
@@ -583,7 +583,7 @@ export class WarehouseService {
     );
 
     return dublicate;
-  }
+  } */
   /*replaceFields(obj1: any, obj2: any) {
     for (let key in obj1) {
       if (obj2.hasOwnProperty(key)) {

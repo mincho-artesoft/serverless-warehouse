@@ -20,7 +20,7 @@ export class WarehouseController {
   constructor(private readonly warehouseService: WarehouseService) {}
 
   //ще е само за админ
-  @Post()
+ /*  @Post()
   @UseGuards(TokenVerification)
   async create(@Body() createWarehouseDto: CreateWarehouseDto) {
     const result = await this.warehouseService.create(createWarehouseDto);
@@ -280,5 +280,5 @@ export class WarehouseController {
           HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
-  }
+  } */
 }
