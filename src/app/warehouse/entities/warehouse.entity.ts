@@ -1,4 +1,57 @@
-import * as dynamoose from 'dynamoose';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ObjectIdColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+
+import { ObjectId } from 'mongodb';
+
+  @Entity('warehouse')
+  export class Warehouse {
+    @ObjectIdColumn()
+    _id!: ObjectId;
+
+    @Column('json', { default: [], nullable: false  })
+    name: { key: string; value: string }[];
+
+    @Column({ default: '', nullable: false   })
+    brand_name: string;
+
+    @Column('json', { default: [] , nullable: false  })
+    description: { key: string; value: string }[];
+
+    @Column({ default: 'global' , nullable: false  })
+    organizationId: string;
+
+    @Column({nullable: false  })
+    unit: string;
+
+    @Column({ default: 0 , nullable: false  })
+    quantity: number;
+
+    @Column('simple-array', { default: [''] , nullable: false  })
+    tags: string[];
+
+    @Column({ default: 0 , nullable: false  })
+    price: number;
+
+    @Column('json', { default: [] , nullable: false  })
+    currentProducts: { quantity: number; expirationDate: Date }[];
+
+    @Column('json', { default: [] , nullable: false  })
+    ingredients: { quantity: number; productId: string }[];
+
+    @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    createdAt: Date;
+
+    @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+    updatedAt: Date;
+  }
+
+/* import * as dynamoose from 'dynamoose';
 
 const warehouseSchema = new dynamoose.Schema(
   {
@@ -126,3 +179,4 @@ const warehouseSchema = new dynamoose.Schema(
   }
 );
 export const Warehouse = dynamoose.model('Warehouse', warehouseSchema);
+ */

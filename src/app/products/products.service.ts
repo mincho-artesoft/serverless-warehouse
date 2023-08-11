@@ -17,7 +17,7 @@ export class ProductsService {
 
   async reloadProducts() {
     const tableName = this.productRepository.metadata.tableName;
- //test 
+    //test
     const fruitsAndVegatablesUrl =
       'https://jmjmdq9hhx-dsn.algolia.net/1/indexes/*/queries?x-algolia-agent=Algolia%20for%20JavaScript%20(4.14.3)%3B%20Browser%20(lite)%3B%20JS%20Helper%20(3.11.3)%3B%20react%20(18.2.0)%3B%20react-instantsearch%20(6.39.0)&x-algolia-api-key=42ca9458d9354298c7016ce9155d8481&x-algolia-application-id=JMJMDQ9HHX';
     const fruitsAndVegatablesBody = {
@@ -178,31 +178,49 @@ export class ProductsService {
   }
 
   async findOne(_id: any): Promise<Product | null> {
-    let organization = null;
+    let product = null;
     if (_id.length === 12 || _id.length === 24) {
       try {
         parseInt(_id, 16);
         _id = new ObjectId(_id);
-        organization = await this.productRepository.findOne({
+        product = await this.productRepository.findOne({
           where: { _id },
         });
       } catch (error) {
-        organization = null;
+        product = null;
       }
     }
-    return organization;
+    return product;
   }
 
   async findOneById(id: number): Promise<Product | null> {
-    const organization = await this.productRepository.findOne({
+    const product = await this.productRepository.findOne({
       where: { id },
     });
-    return organization || null;
+    return product || null;
   }
 
   async findAll(): Promise<Product[]> {
     return this.productRepository.find();
   }
+
+  async findByNameBg(name_bg: string): Promise<Product[]> {
+    //@ts-ignore
+    return await this.productRepository.find({ name_bg: { $regex: name_bg, $options: 'i' } },
+    );
+  }
+  
+  async findByNameEn(name_en: string): Promise<Product[]> {
+    //@ts-ignore
+    return await this.productRepository.find({ name_en: { $regex: name_en, $options: 'i' } },
+    );
+
+  }
+/*   async findByName(name_bg: string): Promise<Product[]> {
+    //@ts-ignore
+    return await this.productRepository.find({ name_bg: { $regex: name_bg, $options: 'i' } },
+    );
+  } */
 }
 /*     const beveragesfilePath =
       '/Users/aleksandarsvinarov/Repo/nx-serverless/apps/serverless-warehouse/src/app/products/beverages.json';

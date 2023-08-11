@@ -26,4 +26,13 @@ export class ProductsController {
   findOneById(@Param('id') id: string) {
     return this.productsService.findOneById(+id);
   }
+  
+  @Get('find-by-name-bg/:name')
+  findByNameBg(@Param('name') name: string) {
+    return this.productsService.findByNameBg(name);
+  }
+  @Get('find-by-name-en/:name')
+  findByNameEn(@Param('name') name: string) {
+    return this.productsService.findByNameEn(name);
+  }
 }

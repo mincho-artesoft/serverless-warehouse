@@ -4,30 +4,52 @@ import { Warehouse } from './entities/warehouse.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { OrganizationService } from '@nx-serverless/auth';
 import { TransactionsService } from '../transactions/transactions.service';
+import { Repository } from 'typeorm';
+import { ObjectId } from 'mongodb';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class WarehouseService {
-  /* constructor(
+  constructor(
     @Inject(OrganizationService)
     public organizationService: OrganizationService,
-    private transactionsService: TransactionsService
+    @InjectRepository(Warehouse)
+    private warehouseRepository: Repository<Warehouse>
   ) {}
 
-  //ще е само за админ
-  async create(createWarehouseDto: CreateWarehouseDto) {
+  //admin
+  async create(createWarehouseDto: Warehouse) {
     try {
-      createWarehouseDto.organizationId = 'global';
+      const validWarehouseObject: Warehouse = {
+        name: createWarehouseDto.name,
+        brand_name: createWarehouseDto.brand_name,
+        description: createWarehouseDto.description,
+        organizationId: 'global',
+        unit: createWarehouseDto.unit,
+        quantity: createWarehouseDto.quantity,
+        tags: createWarehouseDto.tags,
+        price: 0,
+        currentProducts: undefined,
+        ingredients: undefined,
+      } as Warehouse;
+
+      createWarehouseDto = validWarehouseObject;
+
+      if (!this.isWarehouseObject(createWarehouseDto)) {
+        return { message: 'Invalid fields entered.' };
+      }
       const isDuplicate = await this.findDublicate(createWarehouseDto);
-      if (isDuplicate.length > 0) {
+      if (isDuplicate) {
         return { message: 'Warehouse exists.' };
       } else {
-        createWarehouseDto.id = uuidv4();
-        createWarehouseDto.quantity = 0;
-        const newWarehouse = new Warehouse(createWarehouseDto);
-        await newWarehouse.save();
+        if (!createWarehouseDto.tags) {
+          createWarehouseDto.tags = [];
+        }
+        await this.warehouseRepository.save(createWarehouseDto);
         return { message: 'Successful add warehouse.' };
       }
     } catch (error) {
+      console.log(error);
       return { message: 'Warehouse add failed.' };
     }
   }
@@ -36,16 +58,31 @@ export class WarehouseService {
   async autoCreate(id: string) {
     try {
       const myProduct = await this.findAllOrganizationProducts(id);
-      const globalProducts = await this.findAllGlobalProducts();
-      if (myProduct.some((obj) => obj.name === globalProducts[0].name)) {
+      const globalProducts = await this.findAllOrganizationProducts('global');
+      if (
+        myProduct.some(
+          (obj) =>
+            obj.name[0].value === globalProducts[0].name[0].value &&
+            obj.name[0].key === globalProducts[0].name[0].key
+        )
+      ) {
         return { message: 'Have already been added.' };
       }
 
       globalProducts.forEach((element) => {
-        const newWarehouse = new Warehouse(element);
-        newWarehouse.id = uuidv4();
-        newWarehouse.organizationId = id;
-        newWarehouse.save();
+        const validWarehouseObject: Warehouse = {
+          name: element.name,
+          brand_name: element.brand_name,
+          description: element.description,
+          organizationId: id,
+          unit: element.unit,
+          quantity: element.quantity,
+          tags: element.tags,
+          price: element.price,
+          currentProducts: [],
+          ingredients: element.ingredients,
+        } as Warehouse;
+        this.warehouseRepository.save(validWarehouseObject);
       });
       return { message: 'Successful add warehouse.' };
     } catch (error) {
@@ -54,23 +91,39 @@ export class WarehouseService {
   }
 
   //да се проверява дали потребителя има роля в дадената организация?
-  async createOgranizationProduct(
-    createWarehouseDto: CreateWarehouseDto,
-    request: any
-  ) {
+  async createOgranizationProduct(createWarehouseDto: Warehouse, request: any) {
     try {
+      if (!createWarehouseDto.ingredients) {
+        createWarehouseDto.ingredients = null;
+      }
+      if (!this.isWarehouseObject(createWarehouseDto)) {
+        return { message: 'Invalid fields entered.' };
+      }
+
+      const validWarehouseObject: Warehouse = {
+        name: createWarehouseDto.name,
+        brand_name: createWarehouseDto.brand_name,
+        description: createWarehouseDto.description,
+        organizationId: createWarehouseDto.organizationId,
+        unit: createWarehouseDto.unit,
+        quantity: 0,
+        tags: createWarehouseDto.tags,
+        price: createWarehouseDto.price,
+        currentProducts: [],
+        ingredients: createWarehouseDto.ingredients,
+      } as Warehouse;
+
+      createWarehouseDto = validWarehouseObject;
+
       const organirazion = await this.organizationService.findOne(
         createWarehouseDto.organizationId
       );
       if (organirazion) {
         const isDuplicate = await this.findDublicate(createWarehouseDto);
-        if (isDuplicate.length > 0) {
+        if (isDuplicate) {
           return { message: 'Warehouse exists.' };
         } else {
-          if (!createWarehouseDto.ingredients) {
-            createWarehouseDto.ingredients = [];
-          }
-          if (createWarehouseDto.ingredients.length > 0) {
+          if (createWarehouseDto.ingredients) {
             for (const item of createWarehouseDto.ingredients) {
               const result = await this.findOne(item.productId);
               if (!result) {
@@ -78,11 +131,8 @@ export class WarehouseService {
               }
             }
           }
-          createWarehouseDto.id = uuidv4();
-          createWarehouseDto.quantity = 0;
-          const newWarehouse = new Warehouse(createWarehouseDto);
+          await this.warehouseRepository.save(validWarehouseObject);
 
-          await newWarehouse.save();
           return { message: 'Successful add warehouse.' };
         }
       } else {
@@ -93,63 +143,75 @@ export class WarehouseService {
     }
   }
 
-  async findAll() {
-
-    const allWarehouses = await Warehouse.scan().exec();
-    return allWarehouses;
-  }
-
-  async findOne(id: string) {
-    try {
-      const warehouse = await Warehouse.get(id);
-      return warehouse;
-    } catch (err) {
-      return undefined;
-    }
-  }
-
-  async findAllGlobalProducts() {
-    try {
-      const result = await Warehouse.scan().exec();
-      if (result.length > 0) {
-        return result.filter((row: any) => row.organizationId == 'global');
-      } else {
-        return [];
+  async findOne(_id: any): Promise<Warehouse | null> {
+    let warehouse = null;
+    if (_id.length === 12 || _id.length === 24) {
+      try {
+        parseInt(_id, 16);
+        _id = new ObjectId(_id);
+        warehouse = await this.warehouseRepository.findOne({
+          where: { _id },
+        });
+      } catch (error) {
+        warehouse = null;
       }
+    }
+    return warehouse;
+  }
+
+  async findAllOrganizationProducts(
+    organizationId: string
+  ): Promise<Warehouse[]> {
+    const ingredients = null;
+    const product = await this.warehouseRepository.find({
+      //@ts-ignore
+      organizationId,
+      ingredients,
+    });
+    return product || null;
+  }
+
+  async findAllOrganizationCookedProducts(
+    organizationId: string
+  ): Promise<Warehouse[]> {
+    const ingredients = null;
+    const product = await this.warehouseRepository.find({
+      //@ts-ignore
+      organizationId,
+      ingredients: { $ne: ingredients }
+    });
+    return product || null;
+  }
+
+  async findRemainingGlobal(id: string) {
+    try {
+      const organirazion = await this.organizationService.findOne(id);
+      if (organirazion) {
+          const organizationProducts = await this.findAllOrganizationProducts(id);
+          const globalProducts = await this.findAllOrganizationProducts("global");
+
+          const uniqueProducts = globalProducts.filter((obj1) => {
+            const isDuplicate = organizationProducts.some(
+              (obj2) => obj2.name[0].key === obj1.name[0].key && obj2.name[0].value === obj1.name[0].value
+            );
+            return !isDuplicate;
+          });
+          return uniqueProducts;
+      }
+      return { message: 'Organirazion not found.' };
     } catch (err) {
       return [];
     }
   }
-
-  async findAllOrganizationProducts(id: string) {
-    try {
-      const result = await Warehouse.scan().exec();
-      if (result.length > 0) {
-        return result.filter(
-          (row: any) => row.organizationId == id && row.ingredients.length == 0
-        );
-      } else {
-        return [];
-      }
-    } catch (err) {
-      return [];
-    }
+  
+  async findAll(): Promise<Warehouse[]> {
+    return this.warehouseRepository.find();
   }
-
-  async findAllOrganizationCookedProducts(id: string) {
-    try {
-      const result = await Warehouse.scan().exec();
-      if (result.length > 0) {
-        return result.filter(
-          (row: any) => row.organizationId == id && row.ingredients.length > 0
-        );
-      } else {
-        return [];
-      }
-    } catch (err) {
-      return [];
-    }
-  }
+  /* constructor(
+    @Inject(OrganizationService)
+    public organizationService: OrganizationService,
+    private transactionsService: TransactionsService
+  ) {}
 
   async findRemainingGlobal(id: string) {
     try {
@@ -573,24 +635,82 @@ export class WarehouseService {
       return { message: 'Internal server error.' };
     }
   }
+*/
+  async findDublicate(warehouse: Warehouse) {
+    const name = warehouse.name;
+    const organizationId = warehouse.organizationId;
 
-  async findDublicate(warehouse: CreateWarehouseDto) {
-    const result = await Warehouse.scan().exec();
-    const dublicate = result.filter(
-      (row: any) =>
-        row.name[0].value == warehouse.name[0].value &&
-        row.organizationId == warehouse.organizationId
+    const warehouseDB = await this.warehouseRepository.findOne({
+      //@ts-ignore
+      name,
+      organizationId,
+    });
+
+    return warehouseDB;
+  }
+  isWarehouseObject(obj: any): obj is Warehouse {
+    return (
+      (!('name' in obj) || this.isItemValid(obj.name)) &&
+      (!('brand_name' in obj) || typeof obj.brand_name === 'string') &&
+      (!('description' in obj) || this.isItemValid(obj.description)) &&
+      (!('organizationId' in obj) || typeof obj.organizationId === 'string') &&
+      (!('unit' in obj) || typeof obj.unit === 'string') &&
+      (!('quantity' in obj) || typeof obj.quantity === 'number') &&
+      (!('tags' in obj) || Array.isArray(obj.tags)) &&
+      (!('price' in obj) || typeof obj.price === 'number') &&
+      (!('currentProducts' in obj) ||
+        this.isCurrentProductsValid(obj.currentProducts)) &&
+      (!('ingredients' in obj) ||
+        this.isIngredientsProductsValid(obj.ingredients))
     );
-
-    return dublicate;
-  } */
-  /*replaceFields(obj1: any, obj2: any) {
-    for (let key in obj1) {
-      if (obj2.hasOwnProperty(key)) {
-        if (obj2[key].length > 0) {
-          obj1[key] = obj2[key];
-        }
+  }
+  isCurrentProductsValid(items: any): boolean {
+    let result = true;
+    for (const key in items) {
+      const currentDate = new Date(items[key].expirationDate);
+      if (
+        typeof items[key].quantity === 'number' &&
+        currentDate.toString() != 'Invalid Date'
+      ) {
+        result = true;
+      } else {
+        result = false;
+      }
+      if (result == false) {
+        return false;
       }
     }
-  }*/
+    return result;
+  }
+  isIngredientsProductsValid(items: any): boolean {
+    let result = true;
+    for (const key in items) {
+      if (
+        typeof items[key].quantity === 'number' &&
+        typeof items[key].productId === 'string'
+      ) {
+        result = true;
+      } else {
+        result = false;
+      }
+      if (result == false) {
+        return false;
+      }
+    }
+    return result;
+  }
+  isItemValid(items: any): boolean {
+    let result = true;
+    for (const item of items) {
+      if (typeof item.key === 'string' && typeof item.value === 'string') {
+        result = true;
+      } else {
+        result = false;
+      }
+      if (result == false) {
+        return false;
+      }
+    }
+    return result;
+  }
 }
