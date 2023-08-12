@@ -125,6 +125,74 @@ export class WarehouseController {
   findOne(@Param('id') id: string) {
     return this.warehouseService.findOne(id);
   }
+  @Put('changeQuantities')
+  //@UseGuards(TokenVerification)
+  async changeQuantities(
+    @Body() { id, value, date }: { id: string; value: number; date: Date }
+  ) {
+    const result = await this.warehouseService.changeQuantities(
+      id,
+      value,
+      date
+    );
+    switch (result.message) {
+      case 'Warehouse updated.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Warehouse update failed.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Internal server error.':
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+      case 'Invalid or null quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid or null quantity or or expiry date.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'You cannot add cooked food with this function.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Not enough quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+        case 'You cant change global products.':
+          throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      default:
+        throw new HttpException(
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+  @Put('cook')
+  //@UseGuards(TokenVerification)
+  async cook(
+    @Body() { id, value, date }: { id: string; value: number; date: Date }
+  ) {
+    const result = await this.warehouseService.cook(id, value, date);
+    switch (result.message) {
+      case 'Warehouse updated.':
+        return { result, status: HttpStatus.OK };
+      case 'Warehouse not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Warehouse update failed.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Internal server error.':
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
+      case 'Invalid or null quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Invalid or null quantity or or expiry date.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Only the products that have composition can be added with this function.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'No sufficient quantity of the ingredients.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      case 'Not enough quantity.':
+        throw new HttpException(result, HttpStatus.BAD_REQUEST);
+      default:
+        throw new HttpException(
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
   @Put('updateQuantity/:id')
   //@UseGuards(TokenVerification)
   async updateQuantity(
@@ -150,6 +218,8 @@ export class WarehouseController {
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
       case 'Incorrect data.':
         throw new HttpException(result, HttpStatus.BAD_REQUEST);
+        case 'Invalid or null quantity or or expiry date.':
+          throw new HttpException(result, HttpStatus.BAD_REQUEST);
       default:
         throw new HttpException(
           { message: 'Internal server error' },

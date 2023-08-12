@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { Warehouse } from './entities/warehouse.entity';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate } from 'uuid';
 import { OrganizationService } from '@nx-serverless/auth';
 import { TransactionsService } from '../transactions/transactions.service';
 import { Repository } from 'typeorm';
@@ -292,6 +292,7 @@ export class WarehouseService {
   ) {
     try {
       const warehouse = await this.findOne(id);
+      
       if (warehouse) {
         if (
           createWarehouseDto.name.length > 0 &&
@@ -359,18 +360,26 @@ export class WarehouseService {
           return { message: 'You cant change global products.' };
         }
         if (typeof quantity == 'number' && quantity >= 0 && currentProducts) {
-          warehouse.quantity = quantity;
-          warehouse.currentProducts = currentProducts;
-          const log = await this.transactionsService.create(
-            new WarehouseTransaction(id, quantity, 'revision')
-          );
+
           let sum = 0;
-          currentProducts.forEach((element) => {
+          const validateProducts=[];
+
+          if(!this.isCurrentProductsValid(currentProducts)){
+            return { message: 'Invalid or null quantity or or expiry date.' };
+          }
+
+          for (const element of currentProducts) {
             sum += element.quantity;
-          });
+            validateProducts.push({quantity:element.quantity, expirationDate:element.expirationDate});
+          }
           if (quantity != sum) {
             return { message: 'Incorrect data.' };
           }
+          warehouse.quantity = quantity;
+          warehouse.currentProducts = validateProducts;
+          const log = await this.transactionsService.create(
+            new WarehouseTransaction(id, quantity, 'revision')
+          );
           console.log(log);
           if (log.message != 'Successful add WarehouseTransactio.') {
             return { message: 'Warehouse update failed.' };
@@ -387,11 +396,6 @@ export class WarehouseService {
       return { message: 'Internal server error.' };
     }
   }
-  /* constructor(
-    @Inject(OrganizationService)
-    public organizationService: OrganizationService,
-    private transactionsService: TransactionsService
-  ) {}
 
   async changeQuantities(id: string, value: number, date: Date) {
     const result = { message: '', warning: '' };
@@ -399,21 +403,24 @@ export class WarehouseService {
       if (value && value != 0) {
         const warehouse = await this.findOne(id);
         if (warehouse) {
+          if (warehouse.organizationId == 'global') {
+            return { message: 'You cant change global products.' };
+          }
           const expirationDate = new Date(date);
           const currentDate = new Date();
           if (
             value > 0 &&
             date &&
             currentDate < expirationDate &&
-            warehouse.ingredients.length == 0
+            !warehouse.ingredients
           ) {
             const calculateQuantity = warehouse.quantity + value;
             warehouse.quantity = calculateQuantity;
 
-            const log = await this.transactionsService.create({
-              warehouseId: id,
-              quantity: value,
-            });
+            const log = await this.transactionsService.create(new WarehouseTransaction(
+               id,
+               value
+            ));
             console.log(log);
             if (log.message != 'Successful add WarehouseTransactio.') {
               result.message = 'Warehouse update failed.';
@@ -428,14 +435,14 @@ export class WarehouseService {
               quantity: value,
               expirationDate: date,
             });
-            await warehouse.save();
+            await this.warehouseRepository.save(warehouse);
             result.message = 'Warehouse updated.';
             return result;
           } else if (
             value > 0 &&
             date &&
             currentDate < expirationDate &&
-            warehouse.ingredients.length > 0
+            warehouse.ingredients
           ) {
             result.message = 'You cannot add cooked food with this function.';
             return result;
@@ -467,12 +474,15 @@ export class WarehouseService {
             let issued: number = Math.abs(value);
             let i = 0;
             const newProduct = [];
-            warehouse.currentProducts.sort(
-              (a, b) => a.expirationDate - b.expirationDate
-            );
+            warehouse.currentProducts.sort((a: any, b: any) => {
+              const dateA = new Date(a.expirationDate);
+              const dateB = new Date(b.expirationDate);
+            
+              return dateA.getTime() - dateB.getTime();
+            });
             while (issued > 0 && i < warehouse.currentProducts.length) {
               const current = warehouse.currentProducts[i];
-              if (current.expirationDate > currentDate) {
+              if (new Date(current.expirationDate) > currentDate) {
                 if (current.quantity <= issued) {
                   issued -= current.quantity;
                 } else {
@@ -495,16 +505,16 @@ export class WarehouseService {
             if (issued == 0) {
               warehouse.quantity = warehouse.quantity + value;
               warehouse.currentProducts = newProduct;
-              const log = await this.transactionsService.create({
-                warehouseId: id,
-                quantity: value,
-              });
+              const log = await this.transactionsService.create(new WarehouseTransaction(
+                id,
+                value,
+              ));
               console.log(log);
               if (log.message != 'Successful add WarehouseTransactio.') {
                 result.message = 'Warehouse update failed.';
                 return result;
               }
-              await warehouse.save();
+              await this.warehouseRepository.save(warehouse);
               result.message = 'Warehouse updated.';
               return result;
             }
@@ -523,7 +533,6 @@ export class WarehouseService {
       return result;
     }
   }
-
   async checkQuantities(id: string, value: number) {
     const result = { sufficientQuantity: false, warning: false };
     try {
@@ -534,32 +543,26 @@ export class WarehouseService {
 
           let issued: number = Math.abs(value);
           let i = 0;
-          const newProduct = [];
-          warehouse.currentProducts.sort(
-            (a, b) => a.expirationDate - b.expirationDate
-          );
+          warehouse.currentProducts.sort((a: any, b: any) => {
+            const dateA = new Date(a.expirationDate);
+            const dateB = new Date(b.expirationDate);
+          
+            return dateA.getTime() - dateB.getTime();
+          });
           while (issued > 0 && i < warehouse.currentProducts.length) {
             const current = warehouse.currentProducts[i];
-            if (current.expirationDate > currentDate) {
+            if (new Date(current.expirationDate) > currentDate) {
               if (current.quantity <= issued) {
                 issued -= current.quantity;
               } else {
                 current.quantity -= issued;
                 issued = 0;
-                newProduct.push(current);
               }
             } else {
               result.warning = true;
-              newProduct.push(current);
             }
             i++;
           }
-          newProduct.push(
-            ...warehouse.currentProducts.splice(
-              i,
-              warehouse.currentProducts.length - 1
-            )
-          );
           if (issued == 0) {
             result.sufficientQuantity = true;
             return result;
@@ -578,7 +581,87 @@ export class WarehouseService {
       return result;
     }
   }
+  async cook(id: string, value: number, date: Date) {
+    const result = { message: '', spoiledIngredients: Array };
+    try {
+      const warehouse = await this.findOne(id);
+      const expirationDate = new Date(date);
+      const currentDate = new Date();
+      if (
+        value &&
+        warehouse &&
+        value > 0 &&
+        date &&
+        currentDate < expirationDate 
+      ) {
+        if(!warehouse.ingredients){
+          result.message = 'Only the products that have composition can be added with this function.';
+          return result
+        }
+        const checkedIngredients:any = warehouse.ingredients.map((item) => ({
+          ...item,
+        }));
+        let checked = false;
+        for (let i = 0; i < warehouse.ingredients.length; i++) {
+          const currentRes = await this.checkQuantities(
+            warehouse.ingredients[i].productId,
+            value * warehouse.ingredients[i].quantity
+          );
+          checkedIngredients[i].result = currentRes;
+        }
 
+        checked = !checkedIngredients.some(
+          (obj) => obj.result.sufficientQuantity == false
+        );
+
+        if (checked) {
+          for (const ingredient of warehouse.ingredients) {
+            this.changeQuantities(
+              ingredient.productId,
+              -value * ingredient.quantity,
+              new Date()
+            );
+          }
+
+          const calculateQuantity = warehouse.quantity + value;
+          warehouse.quantity = calculateQuantity;
+
+          const log = await this.transactionsService.create(new WarehouseTransaction(
+            id,
+            value
+          ));
+
+          console.log(log);
+          if (log.message != 'Successful add WarehouseTransactio.') {
+            result.message = 'Warehouse update failed.';
+            return result;
+          }
+
+          warehouse.currentProducts.push({
+            quantity: value,
+            expirationDate: date,
+          });
+
+          await this.warehouseRepository.save(warehouse);
+          result.message = 'Warehouse updated.';
+          return result;
+        } else {
+          const resultArray = checkedIngredients.filter(
+            (obj) => obj.result.sufficientQuantity == false
+          );
+          result.message = 'No sufficient quantity of the ingredients.';
+          result.spoiledIngredients = resultArray;
+          return result;
+        }
+      }
+      result.message = 'Invalid or null quantity or or expiry date.';
+      return result;
+    } catch (error) {
+      result.message = 'Internal server error.';
+      return result;
+    }
+  }
+  /* 
   async cook(id: string, value: number, date: Date) {
     const result = { message: '', spoiledIngredients: Array };
     try {
@@ -654,42 +737,6 @@ export class WarehouseService {
     } catch (error) {
       result.message = 'Internal server error.';
       return result;
-    }
-  }
-
-  async updateQuantity(id: string, quantity: number, currentProducts: any) {
-    try {
-      const warehouse = await this.findOne(id);
-      if (warehouse) {
-        if (typeof quantity == 'number' && quantity >= 0 && currentProducts) {
-          warehouse.quantity = quantity;
-          warehouse.currentProducts = currentProducts;
-          const log = await this.transactionsService.create({
-            warehouseId: id,
-            quantity: quantity,
-            type: 'revision',
-          });
-          let sum = 0;
-          currentProducts.forEach((element) => {
-            sum += element.quantity;
-          });
-          if(quantity != sum){
-            return { message: 'Incorrect data.'};
-          }
-          console.log(log);
-          if (log.message != 'Successful add WarehouseTransactio.') {
-            return { message: 'Warehouse update failed.' };
-          }
-
-          await warehouse.save();
-          return { message: 'Warehouse updated.' };
-        }
-      } else {
-        return { message: 'Warehouse not found.' };
-      }
-      return { message: 'Warehouse update failed.' };
-    } catch (error) {
-      return { message: 'Internal server error.' };
     }
   }
 */
