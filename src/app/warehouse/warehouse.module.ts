@@ -4,7 +4,7 @@ import { WarehouseController } from './warehouse.controller';
 import { AuthModule, AuthOrganizationModule, Organization } from '@nx-serverless/auth';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Warehouse } from './entities/warehouse.entity';
+import { Warehouse } from './models/entities/warehouse.entity';
 
 @Module({
   imports: [

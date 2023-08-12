@@ -12,9 +12,12 @@ import {
   Request,
 } from '@nestjs/common';
 import { WarehouseService } from './warehouse.service';
-import { CreateWarehouseDto } from './dto/create-warehouse.dto';
+import { CreateOrganizationProductWarehouseDto } from './models/dto/create-organization-product-warehouse.dto';
 import { TokenVerification } from '@nx-serverless/auth';
-import { Warehouse } from './entities/warehouse.entity';
+import { CreateGlobalProductWarehouseDto } from './models/dto/create-global-product-warehouse.dto';
+import { ICurrentProduct } from './models/current-product.interfate';
+import { UpdateProductWarehouseDto } from './models/dto/update-product-warehouse.dto';
+import { UpdateCookedProductWarehouseDto } from './models/dto/update-cooked-product-warehouse.dto';
 
 @Controller('warehouse')
 export class WarehouseController {
@@ -23,7 +26,7 @@ export class WarehouseController {
   //ще е само за админ
   @Post()
   //@UseGuards(TokenVerification)
-  async create(@Body() createWarehouseDto: Warehouse) {
+  async create(@Body() createWarehouseDto: CreateGlobalProductWarehouseDto) {
     const result = await this.warehouseService.create(createWarehouseDto);
     switch (result.message) {
       case 'Warehouse add failed.':
@@ -45,7 +48,7 @@ export class WarehouseController {
   //@UseGuards(TokenVerification)
   async createOrganizationProduct(
     @Request() request,
-    @Body() createWarehouseDto: Warehouse
+    @Body() createWarehouseDto: CreateOrganizationProductWarehouseDto
   ) {
     const result = await this.warehouseService.createOgranizationProduct(
       createWarehouseDto,
@@ -164,7 +167,7 @@ export class WarehouseController {
   @Put('cook')
   //@UseGuards(TokenVerification)
   async cook(
-    @Body() { id, value, date }: { id: string; value: number; date: Date }
+    @Body() { id, value, date }: { id: string; value: number; date?: Date }
   ) {
     const result = await this.warehouseService.cook(id, value, date);
     switch (result.message) {
@@ -198,7 +201,7 @@ export class WarehouseController {
   async updateQuantity(
     @Param('id') id: string,
     @Body()
-    { quantity, currentProducts }: { quantity: number; currentProducts: any }
+    { quantity, currentProducts }: { quantity: number; currentProducts: ICurrentProduct[] }
   ) {
     const result = await this.warehouseService.updateQuantity(
       id,
@@ -232,7 +235,7 @@ export class WarehouseController {
   async updateProduct(
     @Request() request,
     @Param('id') id: string,
-    @Body() createWarehouseDto: CreateWarehouseDto
+    @Body() createWarehouseDto: UpdateProductWarehouseDto
   ) {
     const result = await this.warehouseService.updateProduct(
       id,
@@ -259,7 +262,7 @@ export class WarehouseController {
   async updateCookedProduct(
     @Request() request,
     @Param('id') id: string,
-    @Body() createWarehouseDto: CreateWarehouseDto
+    @Body() createWarehouseDto: UpdateCookedProductWarehouseDto
   ) {
     const result = await this.warehouseService.updateCookedProduct(
       id,
@@ -301,155 +304,4 @@ export class WarehouseController {
         );
     }
   }
-  //ще е само за админ
-  /*  
-
-  @Put('changeQuantities')
-  @UseGuards(TokenVerification)
-  async changeQuantities(
-    @Body() { id, value, date }: { id: string; value: number; date: Date }
-  ) {
-    const result = await this.warehouseService.changeQuantities(
-      id,
-      value,
-      date
-    );
-    switch (result.message) {
-      case 'Warehouse updated.':
-        return { result, status: HttpStatus.OK };
-      case 'Warehouse not found.':
-        throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Warehouse update failed.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Internal server error.':
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-      case 'Invalid or null quantity.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Invalid or null quantity or or expiry date.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'You cannot add cooked food with this function.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Not enough quantity.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      default:
-        throw new HttpException(
-          { message: 'Internal server error' },
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-  }
-  @Put('cook')
-  @UseGuards(TokenVerification)
-  async cook(
-    @Body() { id, value, date }: { id: string; value: number; date: Date }
-  ) {
-    const result = await this.warehouseService.cook(id, value, date);
-    switch (result.message) {
-      case 'Warehouse updated.':
-        return { result, status: HttpStatus.OK };
-      case 'Warehouse not found.':
-        throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Warehouse update failed.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Internal server error.':
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-      case 'Invalid or null quantity.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Invalid or null quantity or or expiry date.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'You cannot add cooked food with this function.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'No sufficient quantity of the ingredients.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Not enough quantity.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      default:
-        throw new HttpException(
-          { message: 'Internal server error' },
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-  }
-  @Put('updateQuantity/:id')
-  //@UseGuards(TokenVerification)
-  async updateQuantity(
-    @Param('id') id: string,
-    @Body()
-    { quantity, currentProducts }: { quantity: number; currentProducts: any }
-  ) {
-    const result = await this.warehouseService.updateQuantity(
-      id,
-      quantity,
-      currentProducts
-    );
-    switch (result.message) {
-      case 'Warehouse updated.':
-        return { result, status: HttpStatus.OK };
-      case 'Warehouse not found.':
-        throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Warehouse update failed.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Internal server error.':
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-        case 'Incorrect data.':
-          throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      default:
-        throw new HttpException(
-          { message: 'Internal server error' },
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-  }
-  @Put('update-product/:id')
-  @UseGuards(TokenVerification)
-  async updateProduct(
-    @Request() request,
-    @Param('id') id: string,
-    @Body() createWarehouseDto: CreateWarehouseDto
-  ) {
-    const result = await this.warehouseService.updateProduct(
-      id,
-      createWarehouseDto,
-      request
-    );
-    switch (result.message) {
-      case 'Warehouse updated.':
-        return { result, status: HttpStatus.OK };
-      case 'Warehouse not found.':
-        throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Warehouse update failed.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Internal server error.':
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-      default:
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-  @Put('update-cooked-product/:id')
-  @UseGuards(TokenVerification)
-  async updateCookedProduct(
-    @Request() request,
-    @Param('id') id: string,
-    @Body() createWarehouseDto: CreateWarehouseDto
-  ) {
-    const result = await this.warehouseService.updateCookedProduct(
-      id,
-      createWarehouseDto,
-      request
-    );
-    switch (result.message) {
-      case 'Warehouse updated.':
-        return { result, status: HttpStatus.OK };
-      case 'Warehouse not found.':
-        throw new HttpException(result, HttpStatus.NOT_FOUND);
-      case 'Warehouse update failed.':
-        throw new HttpException(result, HttpStatus.BAD_REQUEST);
-      case 'Internal server error.':
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-      default:
-        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
- */
 }

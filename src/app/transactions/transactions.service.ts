@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { WarehouseTransaction } from './entities/transaction.entity';
-import { v4 as uuidv4 } from 'uuid';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { InjectRepository } from '@nestjs/typeorm';

@@ -1,19 +1,14 @@
-import { OrganizationAddress } from "@nx-serverless/auth";
+import { IOrganizationAddress } from '@nx-serverless/auth';
+import { IProduct } from '../product.interface';
 export interface CreateOrderDto {
-  id: string;
   userId: string;
   organizationId: string;
   price: number;
-  status: string;
-  peymentStatis: string;
-  peymentMethod: string;
   products: IProduct[];
-  deliveryDate:Date;
-  address:OrganizationAddress;
-  
+  deliveryDate: Date;
+  address: IOrganizationAddress;
 }
 
-interface IProduct {
-  id: string;
-  quantity: number;
-}
+/*   status: string;
+  peymentStatis: string;
+  peymentMethod: string; */

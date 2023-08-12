@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateOrderDto } from './models/dto/create-order.dto';
 import { Order } from './models/entities/order.entity';
 import OrderStatus from './models/order-status.enum';
 import PaymentStatus from './models/peyment-status.enum';
@@ -8,6 +7,7 @@ import { WarehouseService } from '../warehouse/warehouse.service';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UpdateOrderDto } from './models/dto/update-order.dto';
 
 @Injectable()
 export class OrdersService {
@@ -18,7 +18,7 @@ export class OrdersService {
     private orderRepository: Repository<Order>
   ) {}
 
-  async create(createOrderDto: Order, request: any) {
+  async create(createOrderDto: any, request: any) {
     try {
       if (!this.isOrderValid(createOrderDto)) {
         return { message: 'Invalid fields entered.' };
@@ -123,29 +123,29 @@ export class OrdersService {
   async findAll(): Promise<Order[]> {
     return this.orderRepository.find();
   }
-  async update(id: string, createOrderDto: Partial<Order>) {
+  async update(id: string, updateOrderDto: UpdateOrderDto) {
     try {
       const order = await this.findOne(id);
 
       if (order) {
-        if (createOrderDto.status) {
-          if (!this.isOrderStatusValid(createOrderDto.status)) {
+        if (updateOrderDto.status) {
+          if (!this.isOrderStatusValid(updateOrderDto.status)) {
             return { message: 'Invalid order starus.' };
           }
-          order.status = createOrderDto.status;
+          order.status = updateOrderDto.status;
         }
 
-        if (createOrderDto.paymentStatus) {
-          if (!this.isPaymentStatusStatusValid(createOrderDto.paymentStatus)) {
+        if (updateOrderDto.paymentStatus) {
+          if (!this.isPaymentStatusStatusValid(updateOrderDto.paymentStatus)) {
             return { message: 'Invalid payment starus.' };
           }
-          order.paymentStatus = createOrderDto.paymentStatus;
+          order.paymentStatus = updateOrderDto.paymentStatus;
         }
 
-        if (createOrderDto.products) {
+        if (updateOrderDto.products) {
           let price = 0;
           if (
-            !createOrderDto.products.every(
+            !updateOrderDto.products.every(
               (product: any) =>
                 typeof product.id === 'string' &&
                 typeof product.quantity === 'number'
@@ -157,7 +157,7 @@ export class OrdersService {
             await this.warehouseService.findAllOrganizationCookedProducts(
               order.organizationId
             );
-          const allProductIDsExist = createOrderDto.products.every(
+          const allProductIDsExist = updateOrderDto.products.every(
             (product) => {
               return allOrganizationsProducts.some((obj) => {
                 const result = obj._id.toString() === product.id;
@@ -172,7 +172,7 @@ export class OrdersService {
           if (!allProductIDsExist) {
             return { message: 'Products not found.' };
           }
-          order.products=createOrderDto.products;
+          order.products=updateOrderDto.products;
           order.price = price;
         }
 

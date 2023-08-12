@@ -3,9 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
   UseGuards,
   HttpException,
   HttpStatus,
@@ -15,7 +13,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './models/dto/create-order.dto';
 import { TokenVerification } from '@nx-serverless/auth';
-import { Order } from './models/entities/order.entity';
+import { UpdateOrderDto } from './models/dto/update-order.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -23,7 +21,7 @@ export class OrdersController {
 
   @Post()
   @UseGuards(TokenVerification)
-  async create(@Request() request, @Body() createWarehouseDto: Order) {
+  async create(@Request() request, @Body() createWarehouseDto: CreateOrderDto) {
     const result = await this.ordersService.create(createWarehouseDto, request);
     switch (result.message) {
       case 'Order add failed.':
@@ -75,7 +73,7 @@ export class OrdersController {
 
   @Put(':id')
   //@UseGuards(TokenVerification)
-  async update(@Param('id') id: string, @Body() updateOrderDto: Partial<Order>) {
+  async update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
    // return this.ordersService.update(id, updateOrderDto);
     const result = await this.ordersService.update(id, updateOrderDto);
     switch (result.message) {

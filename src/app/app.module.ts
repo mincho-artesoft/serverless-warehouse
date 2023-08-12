@@ -8,7 +8,7 @@ import { OrdersModule } from './orders/orders.module';
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ProductsModule } from './products/products.module';
 import { Product } from './products/entities/product.entity';
-import { Warehouse } from './warehouse/entities/warehouse.entity';
+import { Warehouse } from './warehouse/models/entities/warehouse.entity';
 import { Organization } from '@nx-serverless/auth';
 import { WarehouseTransaction } from './transactions/entities/transaction.entity';
 import { Order } from './orders/models/entities/order.entity';

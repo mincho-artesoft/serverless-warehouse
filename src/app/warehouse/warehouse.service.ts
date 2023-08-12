@@ -1,13 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { CreateWarehouseDto } from './dto/create-warehouse.dto';
-import { Warehouse } from './entities/warehouse.entity';
-import { v4 as uuidv4, validate } from 'uuid';
+import { Warehouse } from './models/entities/warehouse.entity';
 import { OrganizationService } from '@nx-serverless/auth';
 import { TransactionsService } from '../transactions/transactions.service';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WarehouseTransaction } from '../transactions/entities/transaction.entity';
+import { ICurrentProduct } from './models/current-product.interfate';
+import { UpdateCookedProductWarehouseDto } from './models/dto/update-cooked-product-warehouse.dto';
+import { UpdateProductWarehouseDto } from './models/dto/update-product-warehouse.dto';
 
 @Injectable()
 export class WarehouseService {
@@ -20,12 +21,12 @@ export class WarehouseService {
   ) {}
 
   //admin
-  async create(createWarehouseDto: Warehouse) {
+  async create(createWarehouseDto: any) {
     try {
       if (!this.isWarehouseObject(createWarehouseDto)) {
         return { message: 'Invalid fields entered.' };
       }
-      
+
       const validWarehouseObject: Warehouse = {
         name: createWarehouseDto.name,
         brand_name: createWarehouseDto.brand_name,
@@ -95,7 +96,7 @@ export class WarehouseService {
   }
 
   //да се проверява дали потребителя има роля в дадената организация?
-  async createOgranizationProduct(createWarehouseDto: Warehouse, request: any) {
+  async createOgranizationProduct(createWarehouseDto: any, request: any) {
     try {
       if (!createWarehouseDto.ingredients) {
         createWarehouseDto.ingredients = null;
@@ -247,7 +248,7 @@ export class WarehouseService {
   //да се добавят права за организацията
   async updateProduct(
     id: string,
-    createWarehouseDto: CreateWarehouseDto,
+    createWarehouseDto: UpdateProductWarehouseDto,
     request: any
   ) {
     try {
@@ -258,6 +259,7 @@ export class WarehouseService {
           createWarehouseDto.description.length > 0 &&
           createWarehouseDto.price &&
           createWarehouseDto.tags &&
+          createWarehouseDto.unit &&
           createWarehouseDto.brand_name &&
           !warehouse.ingredients
         ) {
@@ -273,6 +275,7 @@ export class WarehouseService {
           warehouse.description = createWarehouseDto.description;
           warehouse.brand_name = createWarehouseDto.brand_name;
           warehouse.price = createWarehouseDto.price;
+          warehouse.unit = createWarehouseDto.unit
           warehouse.tags = createWarehouseDto.tags;
 
           await this.warehouseRepository.save(warehouse);
@@ -289,7 +292,7 @@ export class WarehouseService {
 
   async updateCookedProduct(
     id: string,
-    createWarehouseDto: CreateWarehouseDto,
+    createWarehouseDto: UpdateCookedProductWarehouseDto,
     request: any
   ) {
     try {
@@ -303,7 +306,7 @@ export class WarehouseService {
           createWarehouseDto.tags &&
           createWarehouseDto.brand_name &&
           createWarehouseDto.ingredients.length > 0 &&
-          createWarehouseDto.ingredients.length > 0 &&
+          createWarehouseDto.unit &&
           warehouse.ingredients
         ) {
           if (
@@ -329,6 +332,7 @@ export class WarehouseService {
           warehouse.price = createWarehouseDto.price;
           warehouse.tags = createWarehouseDto.tags;
           warehouse.ingredients = createWarehouseDto.ingredients;
+          warehouse.unit = createWarehouseDto.unit;
           await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
         }
@@ -354,7 +358,7 @@ export class WarehouseService {
     }
   }
 
-  async updateQuantity(id: string, quantity: number, currentProducts: any) {
+  async updateQuantity(id: string, quantity: number, currentProducts: ICurrentProduct[]) {
     try {
       const warehouse = await this.findOne(id);
       if (warehouse) {

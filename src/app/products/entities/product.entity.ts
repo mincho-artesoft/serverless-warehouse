@@ -1,4 +1,4 @@
-import { Entity, Column,ObjectIdColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column,ObjectIdColumn} from 'typeorm';
 
 import { ObjectId } from 'mongodb';
 
