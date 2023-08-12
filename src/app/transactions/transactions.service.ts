@@ -1,10 +1,54 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { WarehouseTransactio } from './entities/transaction.entity';
+import { WarehouseTransaction } from './entities/transaction.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { Repository } from 'typeorm';
+import { ObjectId } from 'mongodb';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class TransactionsService {
+  constructor(
+    @InjectRepository(WarehouseTransaction)
+    private warehouseRepository: Repository<WarehouseTransaction>
+  ) {}
+  async create(createTransactionDto: WarehouseTransaction) {
+    try {
+      await this.warehouseRepository.save(createTransactionDto);
+      return { message: 'Successful add WarehouseTransactio.' };
+    } catch (error) {
+      return { message: 'WarehouseTransactio add failed.' };
+    }
+  }
+  async findOne(_id: any): Promise<WarehouseTransaction | null> {
+    let transaction = null;
+    if (_id.length === 12 || _id.length === 24) {
+      try {
+        parseInt(_id, 16);
+        _id = new ObjectId(_id);
+        transaction = await this.warehouseRepository.findOne({
+          //@ts-ignore
+          _id,
+        });
+      } catch (error) {
+        console.log(error);
+        transaction = null;
+      }
+    }
+    return transaction;
+  }
+
+  async findAllWarehouseTransaction(
+    warehouseId: string
+  ): Promise<WarehouseTransaction[]> {
+    return this.warehouseRepository.find({
+      //@ts-ignore
+      warehouseId,
+    });
+  }
+  async findAll(): Promise<WarehouseTransaction[]> {
+    return this.warehouseRepository.find();
+  }
   /* async create(createTransactionDto: CreateTransactionDto) {
     try {
       createTransactionDto.id = uuidv4();
@@ -29,7 +73,7 @@ export class TransactionsService {
       return undefined;
     }
   } */
- /* async checkExpirationDate(id: string,currentQuantity:number) {
+  /* async checkExpirationDate(id: string,currentQuantity:number) {
     try {
       const warehouseTransactios = await WarehouseTransactio.scan('warehouseId').contains(id).exec();
       const filteredWarehouseTransactios = warehouseTransactios.filter(

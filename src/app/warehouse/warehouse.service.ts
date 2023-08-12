@@ -7,12 +7,14 @@ import { TransactionsService } from '../transactions/transactions.service';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { InjectRepository } from '@nestjs/typeorm';
+import { WarehouseTransaction } from '../transactions/entities/transaction.entity';
 
 @Injectable()
 export class WarehouseService {
   constructor(
     @Inject(OrganizationService)
     public organizationService: OrganizationService,
+    private transactionsService: TransactionsService,
     @InjectRepository(Warehouse)
     private warehouseRepository: Repository<Warehouse>
   ) {}
@@ -100,6 +102,11 @@ export class WarehouseService {
         return { message: 'Invalid fields entered.' };
       }
 
+      if (createWarehouseDto.organizationId == 'global') {
+        return {
+          message: 'Global products cannot be added using this method.',
+        };
+      }
       const validWarehouseObject: Warehouse = {
         name: createWarehouseDto.name,
         brand_name: createWarehouseDto.brand_name,
@@ -125,7 +132,10 @@ export class WarehouseService {
         } else {
           if (createWarehouseDto.ingredients) {
             for (const item of createWarehouseDto.ingredients) {
-              const result = await this.findOne(item.productId);
+              const result = await this.findOrganizationProduct(
+                item.productId,
+                createWarehouseDto.organizationId
+              );
               if (!result) {
                 return { message: 'Ingredient not found.' };
               }
@@ -170,6 +180,28 @@ export class WarehouseService {
     });
     return product || null;
   }
+  async findOrganizationProduct(
+    _id: any,
+    organizationId: string
+  ): Promise<Warehouse | null> {
+    let product = null;
+    const ingredients = null;
+    if (_id.length === 12 || _id.length === 24) {
+      try {
+        parseInt(_id, 16);
+        _id = new ObjectId(_id);
+        product = await this.warehouseRepository.findOne({
+          //@ts-ignore
+          _id,
+          organizationId,
+          ingredients,
+        });
+      } catch (error) {
+        product = null;
+      }
+    }
+    return product || null;
+  }
 
   async findAllOrganizationCookedProducts(
     organizationId: string
@@ -178,7 +210,7 @@ export class WarehouseService {
     const product = await this.warehouseRepository.find({
       //@ts-ignore
       organizationId,
-      ingredients: { $ne: ingredients }
+      ingredients: { $ne: ingredients },
     });
     return product || null;
   }
@@ -187,74 +219,36 @@ export class WarehouseService {
     try {
       const organirazion = await this.organizationService.findOne(id);
       if (organirazion) {
-          const organizationProducts = await this.findAllOrganizationProducts(id);
-          const globalProducts = await this.findAllOrganizationProducts("global");
+        const organizationProducts = await this.findAllOrganizationProducts(id);
+        const globalProducts = await this.findAllOrganizationProducts('global');
 
-          const uniqueProducts = globalProducts.filter((obj1) => {
-            const isDuplicate = organizationProducts.some(
-              (obj2) => obj2.name[0].key === obj1.name[0].key && obj2.name[0].value === obj1.name[0].value
-            );
-            return !isDuplicate;
-          });
-          return uniqueProducts;
+        const uniqueProducts = globalProducts.filter((obj1) => {
+          const isDuplicate = organizationProducts.some(
+            (obj2) =>
+              obj2.name[0].key === obj1.name[0].key &&
+              obj2.name[0].value === obj1.name[0].value
+          );
+          return !isDuplicate;
+        });
+        return uniqueProducts;
       }
       return { message: 'Organirazion not found.' };
     } catch (err) {
       return [];
     }
   }
-  
+
   async findAll(): Promise<Warehouse[]> {
     return this.warehouseRepository.find();
   }
-  /* constructor(
-    @Inject(OrganizationService)
-    public organizationService: OrganizationService,
-    private transactionsService: TransactionsService
-  ) {}
 
-  async findRemainingGlobal(id: string) {
-    try {
-      const organirazion = await this.organizationService.findOne(id);
-      if (organirazion) {
-        const result = await Warehouse.scan().exec();
-        if (result.length > 0) {
-          const organizationProducts = result.filter(
-            (row: any) => row.organizationId == id
-          );
-          const globalProducts = result.filter(
-            (row: any) => row.organizationId == 'global'
-          );
-          const uniqueProducts = globalProducts.filter((obj1) => {
-            const isDuplicate = organizationProducts.some(
-              (obj2) => obj2.name_en === obj1.name_en
-            );
-            return !isDuplicate;
-          });
-          return uniqueProducts;
-        } else {
-          return [];
-        }
-      }
-      return { message: 'Organirazion not found.' };
-    } catch (err) {
-      return [];
-    }
-  }
-
+  //да се добавят права за организацията
   async updateProduct(
     id: string,
     createWarehouseDto: CreateWarehouseDto,
     request: any
   ) {
     try {
-      if (
-        !request['user'].roles.includes('admin') &&
-        createWarehouseDto.organizationId == 'global'
-      ) {
-        return { message: 'You cant change global products.' };
-      }
-
       const warehouse = await this.findOne(id);
       if (warehouse) {
         if (
@@ -263,14 +257,23 @@ export class WarehouseService {
           createWarehouseDto.price &&
           createWarehouseDto.tags &&
           createWarehouseDto.brand_name &&
-          warehouse.ingredients.length == 0
+          !warehouse.ingredients
         ) {
+          if (
+            (!request['user'].roles.includes('admin') &&
+              createWarehouseDto.organizationId == 'global') ||
+            (warehouse.organizationId == 'global' &&
+              !request['user'].roles.includes('admin'))
+          ) {
+            return { message: 'You cant change global products.' };
+          }
           warehouse.name = createWarehouseDto.name;
           warehouse.description = createWarehouseDto.description;
           warehouse.brand_name = createWarehouseDto.brand_name;
           warehouse.price = createWarehouseDto.price;
           warehouse.tags = createWarehouseDto.tags;
-          await warehouse.save();
+
+          await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
         }
       } else {
@@ -288,13 +291,6 @@ export class WarehouseService {
     request: any
   ) {
     try {
-      if (
-        !request['user'].roles.includes('admin') &&
-        createWarehouseDto.organizationId == 'global'
-      ) {
-        return { message: 'You cant change global products.' };
-      }
-
       const warehouse = await this.findOne(id);
       if (warehouse) {
         if (
@@ -304,15 +300,33 @@ export class WarehouseService {
           createWarehouseDto.tags &&
           createWarehouseDto.brand_name &&
           createWarehouseDto.ingredients.length > 0 &&
-          warehouse.ingredients.length > 0
+          createWarehouseDto.ingredients.length > 0 &&
+          warehouse.ingredients
         ) {
+          if (
+            (!request['user'].roles.includes('admin') &&
+              createWarehouseDto.organizationId == 'global') ||
+            (warehouse.organizationId == 'global' &&
+              !request['user'].roles.includes('admin'))
+          ) {
+            return { message: 'You cant change global products.' };
+          }
+          for (const item of createWarehouseDto.ingredients) {
+            const result = await this.findOrganizationProduct(
+              item.productId,
+              createWarehouseDto.organizationId
+            );
+            if (!result) {
+              return { message: 'Ingredient not found.' };
+            }
+          }
           warehouse.name = createWarehouseDto.name;
           warehouse.description = createWarehouseDto.description;
           warehouse.brand_name = createWarehouseDto.brand_name;
           warehouse.price = createWarehouseDto.price;
           warehouse.tags = createWarehouseDto.tags;
           warehouse.ingredients = createWarehouseDto.ingredients;
-          await warehouse.save();
+          await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
         }
       } else {
@@ -323,6 +337,61 @@ export class WarehouseService {
       return { message: error.message };
     }
   }
+
+  async remove(id: string) {
+    try {
+      const warehouse = await this.findOne(id);
+      if (warehouse) {
+        await this.warehouseRepository.remove(warehouse);
+        return { message: 'Warehouse deleted.' };
+      }
+      return { message: 'Warehouse not found.' };
+    } catch (error) {
+      return { message: 'Internal server error.' };
+    }
+  }
+
+  async updateQuantity(id: string, quantity: number, currentProducts: any) {
+    try {
+      const warehouse = await this.findOne(id);
+      if (warehouse) {
+        if (warehouse.organizationId == 'global') {
+          return { message: 'You cant change global products.' };
+        }
+        if (typeof quantity == 'number' && quantity >= 0 && currentProducts) {
+          warehouse.quantity = quantity;
+          warehouse.currentProducts = currentProducts;
+          const log = await this.transactionsService.create(
+            new WarehouseTransaction(id, quantity, 'revision')
+          );
+          let sum = 0;
+          currentProducts.forEach((element) => {
+            sum += element.quantity;
+          });
+          if (quantity != sum) {
+            return { message: 'Incorrect data.' };
+          }
+          console.log(log);
+          if (log.message != 'Successful add WarehouseTransactio.') {
+            return { message: 'Warehouse update failed.' };
+          }
+
+          await this.warehouseRepository.save(warehouse);
+          return { message: 'Warehouse updated.' };
+        }
+      } else {
+        return { message: 'Warehouse not found.' };
+      }
+      return { message: 'Warehouse update failed.' };
+    } catch (error) {
+      return { message: 'Internal server error.' };
+    }
+  }
+  /* constructor(
+    @Inject(OrganizationService)
+    public organizationService: OrganizationService,
+    private transactionsService: TransactionsService
+  ) {}
 
   async changeQuantities(id: string, value: number, date: Date) {
     const result = { message: '', warning: '' };
@@ -619,18 +688,6 @@ export class WarehouseService {
         return { message: 'Warehouse not found.' };
       }
       return { message: 'Warehouse update failed.' };
-    } catch (error) {
-      return { message: 'Internal server error.' };
-    }
-  }
-  async remove(id: string) {
-    try {
-      const warehouse = await this.findOne(id);
-      if (warehouse) {
-        await warehouse.delete();
-        return { message: 'Warehouse deleted.' };
-      }
-      return { message: 'Warehouse not found.' };
     } catch (error) {
       return { message: 'Internal server error.' };
     }

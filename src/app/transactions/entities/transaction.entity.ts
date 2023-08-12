@@ -1,4 +1,44 @@
-import * as dynamoose from 'dynamoose';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ObjectIdColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+
+import { ObjectId } from 'mongodb';
+@Entity('warehouse_transaction')
+export class WarehouseTransaction {
+  @ObjectIdColumn()
+  _id!: ObjectId;
+
+  @Column({ nullable: false })
+  warehouseId: string;
+
+  @Column({ nullable: false })
+  quantity: number;
+
+  @Column()
+  type: string;
+
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Date;
+
+  constructor(warehouseId:string, quantity:number, type?:string) {
+    this.warehouseId = warehouseId;
+    this.quantity = quantity;
+    this.type = type;
+}
+}
+/* import * as dynamoose from 'dynamoose';
 
 const transactionSchema = new dynamoose.Schema(
   {
@@ -47,4 +87,4 @@ const transactionSchema = new dynamoose.Schema(
 export const WarehouseTransactio = dynamoose.model(
   'WarehouseTransactios',
   transactionSchema
-);
+); */

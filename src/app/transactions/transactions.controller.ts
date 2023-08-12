@@ -5,13 +5,17 @@ import { TransactionsService } from './transactions.service';
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
-  /* @Get()
+   @Get()
   findAll() {
     return this.transactionsService.findAll();
   }
 
+  @Get('warehouse/:id')
+  findAllWarehouseTransaction(@Param('id') id: string) {
+    return this.transactionsService.findAllWarehouseTransaction(id);
+  }
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.transactionsService.findOne(id);
-  } */
+  } 
 }
