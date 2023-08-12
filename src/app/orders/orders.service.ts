@@ -1,27 +1,50 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './models/dto/create-order.dto';
-import { v4 as uuidv4 } from 'uuid';
 import { Order } from './models/entities/order.entity';
 import OrderStatus from './models/order-status.enum';
 import PaymentStatus from './models/peyment-status.enum';
 import PaymentMethod from './models/peyment-methods.enum';
 import { WarehouseService } from '../warehouse/warehouse.service';
+import { Repository } from 'typeorm';
+import { ObjectId } from 'mongodb';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @Inject(WarehouseService)
-    private warehouseService: WarehouseService
+    private warehouseService: WarehouseService,
+    @InjectRepository(Order)
+    private orderRepository: Repository<Order>
   ) {}
 
-/*   async create(createOrderDto: CreateOrderDto, request: any) {
+  async create(createOrderDto: Order, request: any) {
     try {
+      if (!this.isOrderValid(createOrderDto)) {
+        return { message: 'Invalid fields entered.' };
+      }
+
+      const validOrder: Order = {
+        userId: createOrderDto.userId,
+        organizationId: createOrderDto.organizationId,
+        price: createOrderDto.price,
+        status: OrderStatus.DRAFT,
+        paymentMethod: PaymentMethod.DEBIT_CARD,
+        paymentStatus: PaymentStatus.PAYMENT_PENDING,
+        products: createOrderDto.products,
+        deliveryDate: createOrderDto.deliveryDate,
+        address: createOrderDto.address,
+      } as Order;
+
+      createOrderDto = validOrder;
+
       if (
         !request['user'].roles.includes('admin') &&
-        createOrderDto.userId != request['user'].id
+        createOrderDto.userId != request['user']._id
       ) {
         return { message: 'You cannot add an order with someone elses id.' };
       }
+
       if (
         !(await this.warehouseService.organizationService.findOne(
           createOrderDto.organizationId
@@ -30,7 +53,7 @@ export class OrdersService {
         return { message: 'Organisation not found.' };
       }
 
-      const deliveryDate = new Date(createOrderDto.deliveryDate)
+      const deliveryDate = new Date(createOrderDto.deliveryDate);
       const currentDate = new Date();
       const timeDifference = deliveryDate.getTime() - currentDate.getTime();
       if (timeDifference < 3600000) {
@@ -43,72 +66,159 @@ export class OrdersService {
         );
 
       let price = 0;
+
       const allProductIDsExist = createOrderDto.products.every((product) => {
         return allOrganizationsProducts.some((obj) => {
-          const result = obj.id === product.id;
+          const result = obj._id.toString() === product.id;
           if (result) {
             price += product.quantity * obj.price;
           }
           return result;
         });
       });
-      if (price != createOrderDto.price) {
-         return { message: 'Invalid price.' };
-      }
       if (!allProductIDsExist) {
         return { message: 'Products not found.' };
       }
-      createOrderDto.id = uuidv4();
-      createOrderDto.status = OrderStatus.DRAFT;
-      createOrderDto.peymentStatis = PaymentStatus.PAYMENT_PENDING;
-      createOrderDto.peymentMethod = PaymentMethod.DEBIT_CARD;
-      const newWarehouse = new Order(createOrderDto);
-      await newWarehouse.save();
+      if (price != createOrderDto.price) {
+        return { message: 'Invalid price.' };
+      }
+
+      await this.orderRepository.save(createOrderDto);
       return { message: 'Successful add order.' };
     } catch (error) {
       return { message: 'Order add failed.' };
     }
   }
-
-  async findAll() {
-    const allOrders = await Order.scan().exec();
-    return allOrders;
-  }
-
-  async findOne(id: string) {
-    try {
-      const order = await Order.get(id);
-      return order;
-    } catch (err) {
-      return undefined;
-    }
-  }
-  async findAllUserOrders(id: string) {
-    try {
-      const result = await Order.scan().exec();
-      if (result.length > 0) {
-        return result.filter((row: any) => row.userId == id);
-      } else {
-        return [];
+  async findOne(_id: any): Promise<Order | null> {
+    let warehouse = null;
+    if (_id.length === 12 || _id.length === 24) {
+      try {
+        parseInt(_id, 16);
+        _id = new ObjectId(_id);
+        warehouse = await this.orderRepository.findOne({
+          where: { _id },
+        });
+      } catch (error) {
+        warehouse = null;
       }
-    } catch (err) {
-      return [];
     }
+    return warehouse;
   }
-  async findAllOrganizationOrders(id: string) {
+
+  async findAllOrganizationOrders(organizationId: string): Promise<Order[]> {
+    const product = await this.orderRepository.find({
+      //@ts-ignore
+      organizationId,
+    });
+    return product || null;
+  }
+  async findAllUserOrders(userId: string): Promise<Order[]> {
+    const product = await this.orderRepository.find({
+      //@ts-ignore
+      userId,
+    });
+    return product || null;
+  }
+
+  async findAll(): Promise<Order[]> {
+    return this.orderRepository.find();
+  }
+  async update(id: string, createOrderDto: Partial<Order>) {
     try {
-      const result = await Order.scan().exec();
-      if (result.length > 0) {
-        return result.filter((row: any) => row.organizationId == id);
-      } else {
-        return [];
+      const order = await this.findOne(id);
+
+      if (order) {
+        if (createOrderDto.status) {
+          if (!this.isOrderStatusValid(createOrderDto.status)) {
+            return { message: 'Invalid order starus.' };
+          }
+          order.status = createOrderDto.status;
+        }
+
+        if (createOrderDto.paymentStatus) {
+          if (!this.isPaymentStatusStatusValid(createOrderDto.paymentStatus)) {
+            return { message: 'Invalid payment starus.' };
+          }
+          order.paymentStatus = createOrderDto.paymentStatus;
+        }
+
+        if (createOrderDto.products) {
+          let price = 0;
+          if (
+            !createOrderDto.products.every(
+              (product: any) =>
+                typeof product.id === 'string' &&
+                typeof product.quantity === 'number'
+            )
+          ) {
+            return { message: 'Invalid payment starus.' };
+          }
+          const allOrganizationsProducts =
+            await this.warehouseService.findAllOrganizationCookedProducts(
+              order.organizationId
+            );
+          const allProductIDsExist = createOrderDto.products.every(
+            (product) => {
+              return allOrganizationsProducts.some((obj) => {
+                const result = obj._id.toString() === product.id;
+                if (result) {
+                  price += product.quantity * obj.price;
+                }
+                return result;
+              });
+            }
+          );
+
+          if (!allProductIDsExist) {
+            return { message: 'Products not found.' };
+          }
+          order.products=createOrderDto.products;
+          order.price = price;
+        }
+
+        await this.orderRepository.save(order);
+        return { message: 'Order updated.' };
       }
-    } catch (err) {
-      return [];
+      return { message: 'Order not found.' };
+    } catch (error) {
+      console.log(error);
+      return { message: 'Internal server error.' };
     }
   }
 
-  update(id: string, createOrderDto: CreateOrderDto) {
-    return `This action updates a #${id} order`;
-  } */
+  isOrderValid(obj: any): obj is Order {
+    const currentDate = new Date(obj.deliveryDate);
+    return (
+      typeof obj.userId === 'string' &&
+      typeof obj.organizationId === 'string' &&
+      typeof obj.price === 'number' &&
+      Array.isArray(obj.products) &&
+      obj.products.every(
+        (product: any) =>
+          typeof product.id === 'string' && typeof product.quantity === 'number'
+      ) &&
+      currentDate.toString() != 'Invalid Date' &&
+      obj.address &&
+      typeof obj.address.street === 'string' &&
+      typeof obj.address.city === 'string' &&
+      typeof obj.address.state === 'string' &&
+      typeof obj.address.zipCode === 'number' &&
+      typeof obj.address.country === 'string' &&
+      typeof obj.address.latitude === 'number' &&
+      typeof obj.address.longitude === 'number'
+    );
+  }
+
+  isOrderStatusValid(role: any) {
+    const validRoles = Object.values(OrderStatus);
+    return validRoles.includes(role);
+  }
+  isPaymentMethodStatusValid(role: any) {
+    const validRoles = Object.values(PaymentMethod);
+    return validRoles.includes(role);
+  }
+  isPaymentStatusStatusValid(role: any) {
+    const validRoles = Object.values(PaymentStatus);
+    return validRoles.includes(role);
+  }
 }

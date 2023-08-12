@@ -22,6 +22,10 @@ export class WarehouseService {
   //admin
   async create(createWarehouseDto: Warehouse) {
     try {
+      if (!this.isWarehouseObject(createWarehouseDto)) {
+        return { message: 'Invalid fields entered.' };
+      }
+      
       const validWarehouseObject: Warehouse = {
         name: createWarehouseDto.name,
         brand_name: createWarehouseDto.brand_name,
@@ -37,9 +41,7 @@ export class WarehouseService {
 
       createWarehouseDto = validWarehouseObject;
 
-      if (!this.isWarehouseObject(createWarehouseDto)) {
-        return { message: 'Invalid fields entered.' };
-      }
+
       const isDuplicate = await this.findDublicate(createWarehouseDto);
       if (isDuplicate) {
         return { message: 'Warehouse exists.' };
@@ -661,85 +663,6 @@ export class WarehouseService {
       return result;
     }
   }
-  /* 
-  async cook(id: string, value: number, date: Date) {
-    const result = { message: '', spoiledIngredients: Array };
-    try {
-      const warehouse = await this.findOne(id);
-      const expirationDate = new Date(date);
-      const currentDate = new Date();
-      if (
-        value &&
-        warehouse &&
-        value > 0 &&
-        date &&
-        currentDate < expirationDate &&
-        warehouse.ingredients.length > 0
-      ) {
-        const checkedIngredients = warehouse.ingredients.map((item) => ({
-          ...item,
-        }));
-        let checked = false;
-        for (let i = 0; i < warehouse.ingredients.length; i++) {
-          const currentRes = await this.checkQuantities(
-            warehouse.ingredients[i].id,
-            value * warehouse.ingredients[i].value
-          );
-          checkedIngredients[i].result = currentRes;
-        }
-
-        checked = !checkedIngredients.some(
-          (obj) => obj.result.sufficientQuantity == false
-        );
-
-        if (checked) {
-          for (const ingredient of warehouse.ingredients) {
-            this.changeQuantities(
-              ingredient.id,
-              -value * ingredient.value,
-              new Date()
-            );
-          }
-
-          const calculateQuantity = warehouse.quantity + value;
-          warehouse.quantity = calculateQuantity;
-
-          const log = await this.transactionsService.create({
-            warehouseId: id,
-            quantity: value,
-          });
-
-          console.log(log);
-          if (log.message != 'Successful add WarehouseTransactio.') {
-            result.message = 'Warehouse update failed.';
-            return result;
-          }
-
-          warehouse.currentProducts.push({
-            quantity: value,
-            expirationDate: date,
-          });
-
-          await warehouse.save();
-          result.message = 'Warehouse updated.';
-          return result;
-        } else {
-          const resultArray = checkedIngredients.filter(
-            (obj) => obj.result.sufficientQuantity == false
-          );
-          result.message = 'No sufficient quantity of the ingredients.';
-          result.spoiledIngredients = resultArray;
-          return result;
-        }
-      }
-      result.message = 'Invalid or null quantity or or expiry date.';
-      return result;
-    } catch (error) {
-      result.message = 'Internal server error.';
-      return result;
-    }
-  }
-*/
   async findDublicate(warehouse: Warehouse) {
     const name = warehouse.name;
     const organizationId = warehouse.organizationId;

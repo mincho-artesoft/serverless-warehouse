@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as fs from 'fs';
 import axios from 'axios';
 
 @Injectable()
@@ -209,7 +206,7 @@ export class ProductsService {
     return await this.productRepository.find({ name_bg: { $regex: name_bg, $options: 'i' } },
     );
   }
-  
+
   async findByNameEn(name_en: string): Promise<Product[]> {
     //@ts-ignore
     return await this.productRepository.find({ name_en: { $regex: name_en, $options: 'i' } },
