@@ -8,7 +8,7 @@ import {
 
 import { ObjectId } from 'mongodb';
 
-@Entity('Orders')
+@Entity('orders')
 export class Order {
   @ObjectIdColumn()
   _id!: ObjectId;

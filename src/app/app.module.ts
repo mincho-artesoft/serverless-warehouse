@@ -12,6 +12,8 @@ import { Warehouse } from './warehouse/models/entities/warehouse.entity';
 import { Organization } from '@nx-serverless/auth';
 import { WarehouseTransaction } from './transactions/entities/transaction.entity';
 import { Order } from './orders/models/entities/order.entity';
+import { TestModule } from './test/test.module';
+import { TestLoc } from './test/entities/test.entity';
 
 @Module({
   imports: [TypeOrmModule.forRoot({
@@ -19,8 +21,8 @@ import { Order } from './orders/models/entities/order.entity';
     url: 'mongodb+srv://minchomilev:Samoenter123@cluster0.pfnuj.mongodb.net/',
     synchronize: true,
     useUnifiedTopology: true,
-    entities: [Product,Warehouse,Organization,WarehouseTransaction,Order],
-  }),WarehouseModule, TransactionsModule, OrdersModule,ProductsModule],
+    entities: [Product,Warehouse,Organization,WarehouseTransaction,Order,TestLoc],
+  }),WarehouseModule, TransactionsModule, OrdersModule,ProductsModule, TestModule],
   controllers: [AppController],
   providers: [AppService],
 })

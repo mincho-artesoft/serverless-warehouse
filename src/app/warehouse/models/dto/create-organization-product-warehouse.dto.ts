@@ -6,9 +6,7 @@ export interface CreateOrganizationProductWarehouseDto {
   description: Array<{ key: string; value: string }>;
   organizationId: string;
   unit: string;
- // quantity: number;
   tags?: string[];
   price: number;
- // currentProducts: ICurrentProduct[];
   ingredients?: IIngredient[];
 }
