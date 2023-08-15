@@ -1,7 +1,31 @@
 
-import { IIngredient } from "../ingredient.interface";
 
-export interface UpdateProductWarehouseDto {
+import { ApiProperty } from '@nestjs/swagger';
+
+export class UpdateProductWarehouseDto {
+  @ApiProperty()
+  name: Array<{ key: string; value: string }>;
+
+  @ApiProperty()
+  organizationId: string;
+
+  @ApiProperty()
+  brand_name: string;
+
+  @ApiProperty()
+  description: Array<{ key: string; value: string }>;
+
+  @ApiProperty()
+  unit: string;
+
+  @ApiProperty()
+  tags: string[];
+
+  @ApiProperty()
+  price: number;
+}
+
+/* export interface UpdateProductWarehouseDto {
   name: Array<{ key: string; value: string }>;
   organizationId: string;
   brand_name: string;
@@ -9,4 +33,4 @@ export interface UpdateProductWarehouseDto {
   unit: string;
   tags: string[];
   price: number;
-}
+} */

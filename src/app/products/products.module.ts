@@ -3,9 +3,10 @@ import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
+import { AuthModule } from '@nx-serverless/auth';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product])],
+  imports: [AuthModule,TypeOrmModule.forFeature([Product])],
   controllers: [ProductsController],
   providers: [ProductsService],
 })
