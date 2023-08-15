@@ -195,7 +195,7 @@ export class WarehouseService {
         _id = new ObjectId(_id);
         product = await this.warehouseRepository.findOne({
           //@ts-ignore
-          _id,
+          _id, 
           organizationId,
           ingredients,
         });
