@@ -38,6 +38,7 @@ export class WarehouseService {
         price: 0,
         currentProducts: undefined,
         ingredients: undefined,
+        images: []
       } as Warehouse;
 
       createWarehouseDto = validWarehouseObject;
@@ -86,6 +87,7 @@ export class WarehouseService {
           price: element.price,
           currentProducts: [],
           ingredients: element.ingredients,
+          images: []
         } as Warehouse;
         this.warehouseRepository.save(validWarehouseObject);
       });
@@ -121,6 +123,7 @@ export class WarehouseService {
         price: createWarehouseDto.price,
         currentProducts: [],
         ingredients: createWarehouseDto.ingredients,
+        images: []
       } as Warehouse;
 
       createWarehouseDto = validWarehouseObject;
@@ -261,6 +264,7 @@ export class WarehouseService {
           createWarehouseDto.tags &&
           createWarehouseDto.unit &&
           createWarehouseDto.brand_name &&
+          createWarehouseDto.images &&
           !warehouse.ingredients
         ) {
           if (
@@ -277,6 +281,7 @@ export class WarehouseService {
           warehouse.price = createWarehouseDto.price;
           warehouse.unit = createWarehouseDto.unit
           warehouse.tags = createWarehouseDto.tags;
+          warehouse.images = createWarehouseDto.images;
 
           await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
@@ -307,6 +312,7 @@ export class WarehouseService {
           createWarehouseDto.brand_name &&
           createWarehouseDto.ingredients.length > 0 &&
           createWarehouseDto.unit &&
+          createWarehouseDto.images &&
           warehouse.ingredients
         ) {
           if (
@@ -333,6 +339,7 @@ export class WarehouseService {
           warehouse.tags = createWarehouseDto.tags;
           warehouse.ingredients = createWarehouseDto.ingredients;
           warehouse.unit = createWarehouseDto.unit;
+          warehouse.images = createWarehouseDto.images;
           await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
         }

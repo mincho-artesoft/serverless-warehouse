@@ -43,6 +43,9 @@ import { ObjectId } from 'mongodb';
     @Column('json', { default: [] , nullable: false  })
     ingredients: { quantity: number; productId: string }[];
 
+    @Column('json', { default: []})
+    images: { key: string; value: string }[];
+
     @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date;
 
