@@ -10,6 +10,7 @@ import {
   UseGuards,
   Put,
   Request,
+  Req,
 } from '@nestjs/common';
 import { WarehouseService } from './warehouse.service';
 import { CreateOrganizationProductWarehouseDto } from './models/dto/create-organization-product-warehouse.dto';
@@ -28,6 +29,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentProduct } from './models/current-product';
+import { SnsService } from '@nx-serverless/aws';
 
 class UpdateQuantitiesDto {
   @ApiProperty()
@@ -52,7 +54,8 @@ class UpdateQuantitiesDto {
 @ApiBearerAuth()
 @Controller('warehouse')
 export class WarehouseController {
-  constructor(private readonly warehouseService: WarehouseService) {}
+  constructor(private readonly warehouseService: WarehouseService,
+    private readonly snsService: SnsService) {}
 
   @ApiOperation({
     summary: 'Create a new warehouse Global Product',
@@ -600,6 +603,33 @@ export class WarehouseController {
           { message: 'Internal server error' },
           HttpStatus.INTERNAL_SERVER_ERROR
         );
+    }
+  }
+
+  @Post('add-image-sns')
+  async handleSnsNotification(@Body() body: any) {  
+    if (typeof body == 'string') {
+      const notificationObj = JSON.parse(body);
+     // console.log(typeof notificationObj.Message)    
+      console.log('Received SNS Notification:', notificationObj);
+      if (notificationObj.TopicArn && notificationObj.Token) {
+        await this.snsService.confirmSubscription(
+          notificationObj.TopicArn,
+          notificationObj.Token
+        );
+      }else{
+        const message =  JSON.parse(notificationObj.Message);
+        if (
+          message.id &&
+          message.image &&
+          message.type == 'warehouse'
+        ) {
+          await this.warehouseService.addImage(
+            message.id,
+            message.image
+          );
+        }
+      }
     }
   }
 }
