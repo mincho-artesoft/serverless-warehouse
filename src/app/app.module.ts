@@ -16,7 +16,7 @@ import { Order } from './orders/models/entities/order.entity';
 @Module({
   imports: [TypeOrmModule.forRoot({
     type: 'mongodb',
-    url: 'mongodb+srv://minchomilev:Samoenter123@cluster0.pfnuj.mongodb.net/',
+    url: process.env.MONGODB_URL,
     synchronize: true,
     useUnifiedTopology: true,
     entities: [Product,Warehouse,Organization,WarehouseTransaction,Order],
