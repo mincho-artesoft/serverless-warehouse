@@ -27,7 +27,7 @@ export class OrdersService {
       const validOrder: Order = {
         userId: createOrderDto.userId,
         organizationId: createOrderDto.organizationId,
-        price: createOrderDto.price,
+        price: 0,
         status: OrderStatus.DRAFT,
         paymentMethod: PaymentMethod.DEBIT_CARD,
         paymentStatus: PaymentStatus.PAYMENT_PENDING,
@@ -76,12 +76,14 @@ export class OrdersService {
           return result;
         });
       });
+
+      createOrderDto.price = price;
       if (!allProductIDsExist) {
         return { message: 'Products not found.' };
       }
-      if (price != createOrderDto.price) {
+      /* if (price != createOrderDto.price) {
         return { message: 'Invalid price.' };
-      }
+      } */
 
       await this.orderRepository.save(createOrderDto);
       return { message: 'Successful add order.' };
@@ -191,7 +193,7 @@ export class OrdersService {
     return (
       typeof obj.userId === 'string' &&
       typeof obj.organizationId === 'string' &&
-      typeof obj.price === 'number' &&
+     // typeof obj.price === 'number' &&
       Array.isArray(obj.products) &&
       obj.products.every(
         (product: any) =>

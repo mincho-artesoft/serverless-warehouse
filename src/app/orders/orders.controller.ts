@@ -15,6 +15,7 @@ import { CreateOrderDto } from './models/dto/create-order.dto';
 import { TokenVerification } from '@nx-serverless/auth';
 import { UpdateOrderDto } from './models/dto/update-order.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import PaymentStatus from './models/peyment-status.enum';
 
 @ApiTags('Warehouse - Orders')
 @ApiBearerAuth()
@@ -106,6 +107,30 @@ export class OrdersController {
   }
 
 
+  @Post('updateWebhook:id')
+ // @UseGuards(TokenVerification)
+  async updateWebhook(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
+    updateOrderDto.paymentStatus= PaymentStatus.PAID;
+    const result = await this.ordersService.update(id, updateOrderDto);
+    switch (result.message) {
+      case 'Products not found.':
+      case 'Order not found.':
+        throw new HttpException(result, HttpStatus.NOT_FOUND);
+      case 'Order updated.':
+        return { result, status: HttpStatus.OK };
+      case 'Organisation not found.':
+      case 'Invalid payment starus.':
+        case 'Invalid order starus.':
+          throw new HttpException(result, HttpStatus.BAD_REQUEST);
+
+      default:
+        throw new HttpException(
+          { message: 'Internal server error' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+
 
 
   @ApiOperation({
@@ -140,4 +165,5 @@ export class OrdersController {
         );
     }
   }
+
 }
