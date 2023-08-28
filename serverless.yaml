@@ -38,7 +38,7 @@ functions:
     events:
       - httpApi:
           method: '*'
-          path: /api/{proxy+}
+          path: /api/warehouse/{proxy+}
 
 custom:
   serverless-offline:

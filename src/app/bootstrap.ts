@@ -68,7 +68,7 @@ export const setupNestApp = (app: INestApplication & NestFastifyApplication) => 
   app.use(compression());
   app.use(cookieParser());
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/warehouse');
   app.enableCors({
     allowedHeaders:"*",
     origin: "*"
