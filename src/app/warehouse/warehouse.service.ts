@@ -129,10 +129,19 @@ export class WarehouseService {
 
       createWarehouseDto = validWarehouseObject;
 
-      const organirazion = await this.organizationService.findOne(
+      const organization = await this.organizationService.findOne(
         createWarehouseDto.organizationId
       );
-      if (organirazion) {
+      if (organization) {
+        const allName = this.areObjectKeysInArray(createWarehouseDto.name,organization.languages)
+        const allDescription =this.areObjectKeysInArray(createWarehouseDto.description,organization.languages)
+        if (!allName) {
+          return { message: 'Invalid name.' };
+        }
+        if (!allDescription) {
+          return { message: 'Invalid description.' };
+        }
+
         const isDuplicate = await this.findDublicate(createWarehouseDto);
         if (isDuplicate) {
           return { message: 'Warehouse exists.' };
@@ -156,6 +165,7 @@ export class WarehouseService {
         return { message: 'Organirazion not found.' };
       }
     } catch (error) {
+      console.log(error)
       return { message: 'Warehouse add failed.' };
     }
   }
@@ -693,9 +703,7 @@ export class WarehouseService {
   }
   isWarehouseObject(obj: any): obj is Warehouse {
     return (
-      (!('name' in obj) || this.isItemValid(obj.name)) &&
       (!('brand_name' in obj) || typeof obj.brand_name === 'string') &&
-      (!('description' in obj) || this.isItemValid(obj.description)) &&
       (!('organizationId' in obj) || typeof obj.organizationId === 'string') &&
       (!('unit' in obj) || typeof obj.unit === 'string') &&
       (!('quantity' in obj) || typeof obj.quantity === 'number') &&
@@ -768,4 +776,17 @@ export class WarehouseService {
       console.log(error);
     }
   }
+
+   areObjectKeysInArray(object, array) {
+    const objectKeys = Object.keys(object);
+    
+    for (const key of objectKeys) {
+      if (!array.includes(key)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
 }

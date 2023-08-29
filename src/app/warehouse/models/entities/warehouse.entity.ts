@@ -8,50 +8,54 @@ import {
 
 import { ObjectId } from 'mongodb';
 
-  @Entity('warehouse')
-  export class Warehouse {
-    @ObjectIdColumn()
-    _id!: ObjectId;
+@Entity('warehouse')
+export class Warehouse {
+  @ObjectIdColumn()
+  _id!: ObjectId;
 
-    @Column('json', { default: [], nullable: false  })
-    name: { key: string; value: string }[];
+  @Column('json', { default: {}, nullable: false })
+  name: any;
 
-    @Column({ default: '', nullable: false   })
-    brand_name: string;
+  @Column({ default: '', nullable: false })
+  brand_name: string;
 
-    @Column('json', { default: [] , nullable: false  })
-    description: { key: string; value: string }[];
+  @Column('json', { default: {}, nullable: false })
+  description: any;
 
-    @Column({ default: 'global' , nullable: false  })
-    organizationId: string;
+  @Column({ default: 'global', nullable: false })
+  organizationId: string;
 
-    @Column({nullable: false  })
-    unit: string;
+  @Column({ nullable: false })
+  unit: string;
 
-    @Column({ default: 0 , nullable: false  })
-    quantity: number;
+  @Column({ default: 0, nullable: false })
+  quantity: number;
 
-    @Column('simple-array', { default: [''] , nullable: false  })
-    tags: string[];
+  @Column('simple-array', { default: [''], nullable: false })
+  tags: string[];
 
-    @Column({ default: 0 , nullable: false  })
-    price: number;
+  @Column({ default: 0, nullable: false })
+  price: number;
 
-    @Column('json', { default: [] , nullable: false  })
-    currentProducts: { quantity: number; expirationDate: Date }[];
+  @Column('json', { default: [], nullable: false })
+  currentProducts: { quantity: number; expirationDate: Date }[];
 
-    @Column('json', { default: [] , nullable: false  })
-    ingredients: { quantity: number; productId: string }[];
+  @Column('json', { default: [], nullable: false })
+  ingredients: { quantity: number; productId: string }[];
 
-    @Column('json', { default: []})
-    images: { key: string; value: string }[];
+  @Column('json', { default: [] })
+  images: { key: string; value: string }[];
 
-    @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    createdAt: Date;
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
 
-    @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    updatedAt: Date;
-  }
+  @UpdateDateColumn({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Date;
+}
 
 /* import * as dynamoose from 'dynamoose';
 
