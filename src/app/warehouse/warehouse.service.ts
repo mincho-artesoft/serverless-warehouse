@@ -9,6 +9,8 @@ import { WarehouseTransaction } from '../transactions/entities/transaction.entit
 import { ICurrentProduct } from './models/current-product.interfate';
 import { UpdateCookedProductWarehouseDto } from './models/dto/update-cooked-product-warehouse.dto';
 import { UpdateProductWarehouseDto } from './models/dto/update-product-warehouse.dto';
+import { SNS } from 'aws-sdk';
+import { PublishCommand, SNSClient, SubscribeCommand } from "@aws-sdk/client-sns";
 
 @Injectable()
 export class WarehouseService {
@@ -38,10 +40,10 @@ export class WarehouseService {
         price: 0,
         currentProducts: undefined,
         ingredients: undefined,
+        images: [],
       } as Warehouse;
 
       createWarehouseDto = validWarehouseObject;
-
 
       const isDuplicate = await this.findDublicate(createWarehouseDto);
       if (isDuplicate) {
@@ -86,6 +88,7 @@ export class WarehouseService {
           price: element.price,
           currentProducts: [],
           ingredients: element.ingredients,
+          images: [],
         } as Warehouse;
         this.warehouseRepository.save(validWarehouseObject);
       });
@@ -121,14 +124,24 @@ export class WarehouseService {
         price: createWarehouseDto.price,
         currentProducts: [],
         ingredients: createWarehouseDto.ingredients,
+        images: [],
       } as Warehouse;
 
       createWarehouseDto = validWarehouseObject;
 
-      const organirazion = await this.organizationService.findOne(
+      const organization = await this.organizationService.findOne(
         createWarehouseDto.organizationId
       );
-      if (organirazion) {
+      if (organization) {
+        const allName = this.areObjectKeysInArray(createWarehouseDto.name,organization.languages)
+        const allDescription =this.areObjectKeysInArray(createWarehouseDto.description,organization.languages)
+        if (!allName) {
+          return { message: 'Invalid name.' };
+        }
+        if (!allDescription) {
+          return { message: 'Invalid description.' };
+        }
+
         const isDuplicate = await this.findDublicate(createWarehouseDto);
         if (isDuplicate) {
           return { message: 'Warehouse exists.' };
@@ -152,6 +165,7 @@ export class WarehouseService {
         return { message: 'Organirazion not found.' };
       }
     } catch (error) {
+      console.log(error)
       return { message: 'Warehouse add failed.' };
     }
   }
@@ -195,7 +209,7 @@ export class WarehouseService {
         _id = new ObjectId(_id);
         product = await this.warehouseRepository.findOne({
           //@ts-ignore
-          _id, 
+          _id,
           organizationId,
           ingredients,
         });
@@ -261,6 +275,7 @@ export class WarehouseService {
           createWarehouseDto.tags &&
           createWarehouseDto.unit &&
           createWarehouseDto.brand_name &&
+          createWarehouseDto.images &&
           !warehouse.ingredients
         ) {
           if (
@@ -275,8 +290,9 @@ export class WarehouseService {
           warehouse.description = createWarehouseDto.description;
           warehouse.brand_name = createWarehouseDto.brand_name;
           warehouse.price = createWarehouseDto.price;
-          warehouse.unit = createWarehouseDto.unit
+          warehouse.unit = createWarehouseDto.unit;
           warehouse.tags = createWarehouseDto.tags;
+          warehouse.images = createWarehouseDto.images;
 
           await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
@@ -297,7 +313,7 @@ export class WarehouseService {
   ) {
     try {
       const warehouse = await this.findOne(id);
-      
+
       if (warehouse) {
         if (
           createWarehouseDto.name.length > 0 &&
@@ -307,6 +323,7 @@ export class WarehouseService {
           createWarehouseDto.brand_name &&
           createWarehouseDto.ingredients.length > 0 &&
           createWarehouseDto.unit &&
+          createWarehouseDto.images &&
           warehouse.ingredients
         ) {
           if (
@@ -333,6 +350,7 @@ export class WarehouseService {
           warehouse.tags = createWarehouseDto.tags;
           warehouse.ingredients = createWarehouseDto.ingredients;
           warehouse.unit = createWarehouseDto.unit;
+          warehouse.images = createWarehouseDto.images;
           await this.warehouseRepository.save(warehouse);
           return { message: 'Warehouse updated.' };
         }
@@ -358,7 +376,11 @@ export class WarehouseService {
     }
   }
 
-  async updateQuantity(id: string, quantity: number, currentProducts: ICurrentProduct[]) {
+  async updateQuantity(
+    id: string,
+    quantity: number,
+    currentProducts: ICurrentProduct[]
+  ) {
     try {
       const warehouse = await this.findOne(id);
       if (warehouse) {
@@ -366,17 +388,19 @@ export class WarehouseService {
           return { message: 'You cant change global products.' };
         }
         if (typeof quantity == 'number' && quantity >= 0 && currentProducts) {
-
           let sum = 0;
-          const validateProducts=[];
+          const validateProducts = [];
 
-          if(!this.isCurrentProductsValid(currentProducts)){
+          if (!this.isCurrentProductsValid(currentProducts)) {
             return { message: 'Invalid or null quantity or or expiry date.' };
           }
 
           for (const element of currentProducts) {
             sum += element.quantity;
-            validateProducts.push({quantity:element.quantity, expirationDate:element.expirationDate});
+            validateProducts.push({
+              quantity: element.quantity,
+              expirationDate: element.expirationDate,
+            });
           }
           if (quantity != sum) {
             return { message: 'Incorrect data.' };
@@ -423,10 +447,9 @@ export class WarehouseService {
             const calculateQuantity = warehouse.quantity + value;
             warehouse.quantity = calculateQuantity;
 
-            const log = await this.transactionsService.create(new WarehouseTransaction(
-               id,
-               value
-            ));
+            const log = await this.transactionsService.create(
+              new WarehouseTransaction(id, value)
+            );
             console.log(log);
             if (log.message != 'Successful add WarehouseTransactio.') {
               result.message = 'Warehouse update failed.';
@@ -483,7 +506,7 @@ export class WarehouseService {
             warehouse.currentProducts.sort((a: any, b: any) => {
               const dateA = new Date(a.expirationDate);
               const dateB = new Date(b.expirationDate);
-            
+
               return dateA.getTime() - dateB.getTime();
             });
             while (issued > 0 && i < warehouse.currentProducts.length) {
@@ -511,10 +534,9 @@ export class WarehouseService {
             if (issued == 0) {
               warehouse.quantity = warehouse.quantity + value;
               warehouse.currentProducts = newProduct;
-              const log = await this.transactionsService.create(new WarehouseTransaction(
-                id,
-                value,
-              ));
+              const log = await this.transactionsService.create(
+                new WarehouseTransaction(id, value)
+              );
               console.log(log);
               if (log.message != 'Successful add WarehouseTransactio.') {
                 result.message = 'Warehouse update failed.';
@@ -552,7 +574,7 @@ export class WarehouseService {
           warehouse.currentProducts.sort((a: any, b: any) => {
             const dateA = new Date(a.expirationDate);
             const dateB = new Date(b.expirationDate);
-          
+
             return dateA.getTime() - dateB.getTime();
           });
           while (issued > 0 && i < warehouse.currentProducts.length) {
@@ -598,13 +620,14 @@ export class WarehouseService {
         warehouse &&
         value > 0 &&
         date &&
-        currentDate < expirationDate 
+        currentDate < expirationDate
       ) {
-        if(!warehouse.ingredients){
-          result.message = 'Only the products that have composition can be added with this function.';
-          return result
+        if (!warehouse.ingredients) {
+          result.message =
+            'Only the products that have composition can be added with this function.';
+          return result;
         }
-        const checkedIngredients:any = warehouse.ingredients.map((item) => ({
+        const checkedIngredients: any = warehouse.ingredients.map((item) => ({
           ...item,
         }));
         let checked = false;
@@ -632,10 +655,9 @@ export class WarehouseService {
           const calculateQuantity = warehouse.quantity + value;
           warehouse.quantity = calculateQuantity;
 
-          const log = await this.transactionsService.create(new WarehouseTransaction(
-            id,
-            value
-          ));
+          const log = await this.transactionsService.create(
+            new WarehouseTransaction(id, value)
+          );
 
           console.log(log);
           if (log.message != 'Successful add WarehouseTransactio.') {
@@ -681,9 +703,7 @@ export class WarehouseService {
   }
   isWarehouseObject(obj: any): obj is Warehouse {
     return (
-      (!('name' in obj) || this.isItemValid(obj.name)) &&
       (!('brand_name' in obj) || typeof obj.brand_name === 'string') &&
-      (!('description' in obj) || this.isItemValid(obj.description)) &&
       (!('organizationId' in obj) || typeof obj.organizationId === 'string') &&
       (!('unit' in obj) || typeof obj.unit === 'string') &&
       (!('quantity' in obj) || typeof obj.quantity === 'number') &&
@@ -744,4 +764,29 @@ export class WarehouseService {
     }
     return result;
   }
+
+  async addImage(id: string, image: any) {
+    try {
+      const warehouse = await this.findOne(id);
+      if (warehouse) {
+        warehouse.images.push(image);
+        await this.warehouseRepository.save(warehouse);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+   areObjectKeysInArray(object, array) {
+    const objectKeys = Object.keys(object);
+    
+    for (const key of objectKeys) {
+      if (!array.includes(key)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
 }

@@ -23,6 +23,9 @@ export class UpdateProductWarehouseDto {
 
   @ApiProperty()
   price: number;
+
+  @ApiProperty()
+  images?: Array<{ key: string; value: string }>;
 }
 
 /* export interface UpdateProductWarehouseDto {

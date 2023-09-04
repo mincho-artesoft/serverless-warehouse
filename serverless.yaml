@@ -15,6 +15,13 @@ provider:
   environment:
     REGION: ${env:REGION}
     APP_ENV: ${env:APP_ENV}
+    MONGODB_URL: ${env:MONGODB_URL}
+    ACCESS_KEY_ID: ${env:ACCESS_KEY_ID}
+    SECRET_ACCESS_KEY: ${env:SECRET_ACCESS_KEY}
+    GOOGLE_CLIENT_ID: ${env:GOOGLE_CLIENT_ID}
+    GOOGLE_SECRET: ${env:GOOGLE_SECRET}
+    FACEBOOK_APP_ID: ${env:FACEBOOK_APP_ID}
+    FACEBOOK_APP_ID_APP_SECRET: ${env:FACEBOOK_APP_ID_APP_SECRET}
 
   iam:
     role:
@@ -31,7 +38,7 @@ functions:
     events:
       - httpApi:
           method: '*'
-          path: /api/{proxy+}
+          path: /api/warehouse/{proxy+}
 
 custom:
   serverless-offline:

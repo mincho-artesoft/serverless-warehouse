@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Ingredient } from '../ingredient';
 
 export class UpdateCookedProductWarehouseDto {
@@ -25,6 +25,9 @@ export class UpdateCookedProductWarehouseDto {
 
   @ApiProperty()
   ingredients: Ingredient[];
+  
+  @ApiProperty()
+  images: Array<{ key: string; value: string }>;
 }
 
 /* 
